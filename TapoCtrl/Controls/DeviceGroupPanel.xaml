@@ -1,0 +1,14 @@
+<UserControl x:Class="TapoCtrl.Controls.DeviceGroupPanel" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" MinWidth="260" MinHeight="32">
+ <Border x:Name="GroupBorder" Background="#1F242C" BorderThickness="2" CornerRadius="12" Padding="8">
+  <Grid>
+   <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+   <Border x:Name="HeaderBorder" CornerRadius="7" Padding="8,2" Cursor="SizeAll">
+    <DockPanel><TextBlock x:Name="TitleText" FontWeight="Bold" FontSize="13" Foreground="#171A1F"/><TextBlock x:Name="CountText" DockPanel.Dock="Right" Foreground="#30343A"/></DockPanel>
+   </Border>
+   <ScrollViewer x:Name="ItemsScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Margin="0,4,0,0">
+    <Canvas x:Name="ItemsHost" Background="Transparent"/>
+   </ScrollViewer>
+   <Thumb x:Name="ResizeThumb" Grid.RowSpan="2" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="SizeNWSE" Background="#8B95A3" Opacity="0.7"/>
+  </Grid>
+ </Border>
+</UserControl>

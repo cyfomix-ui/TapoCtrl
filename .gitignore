@@ -1,0 +1,41 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Python
+**/__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Build and release output
+artifacts/
+publish/
+*.nupkg
+
+# Local application data and credentials
+settings.json
+credentials.bin
+history.json
+*.local.json
+
+# Local archives, work logs, and internal migration material
+*.zip
+_Docs/
+_Oldsource/
+_Woker/
+docs/
+README_ja.md
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.log

@@ -1,0 +1,20 @@
+<Window x:Class="TapoCtrl.Windows.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="520" Height="300" WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+  <Border CornerRadius="20" Background="#F2171A1F" BorderBrush="#566171" BorderThickness="1">
+    <Grid>
+      <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Width="112" Height="112" CornerRadius="24" Background="#26313B" Padding="10">
+          <Image Source="/TapoCtrl;component/Assets/TapoCtrl.png" Stretch="Uniform"/>
+        </Border>
+        <TextBlock Margin="0,18,0,0" Text="TapoCtrl" FontSize="34" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+        <TextBlock x:Name="VersionText" Margin="0,5,0,0" Foreground="#B8C1CC" FontSize="15" HorizontalAlignment="Center"/>
+      </StackPanel>
+      <TextBlock Grid.Row="1" Margin="0,0,0,20" Text="デバイス制御を準備しています…" Foreground="#9EA8B5" HorizontalAlignment="Center"/>
+    </Grid>
+  </Border>
+</Window>

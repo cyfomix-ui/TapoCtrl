@@ -1,0 +1,30 @@
+<Window x:Class="TapoCtrl.Windows.PythonInstallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TapoCtrl - Python環境の準備" Width="650" Height="410"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False">
+  <Grid Margin="22">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <TextBlock FontSize="22" FontWeight="SemiBold" Text="Tapoデバイス接続にPythonパッケージが必要です"/>
+    <TextBlock Grid.Row="1" Margin="0,12,0,12" TextWrapping="Wrap" Foreground="#D9E0E8"
+               Text="この操作は最初の1回だけです。インストール後はTapoCtrlが自動的にPythonワーカーを使用します。"/>
+    <Border Grid.Row="2" Background="#20252D" BorderBrush="#566171" BorderThickness="1" CornerRadius="8" Padding="16">
+      <StackPanel>
+        <TextBlock x:Name="ReasonText" TextWrapping="Wrap" Foreground="#FFD166" Margin="0,0,0,14"/>
+        <TextBlock Text="自動インストール:" FontWeight="SemiBold"/>
+        <TextBlock Margin="0,4,0,12" Text="python -m pip install --user --upgrade python-kasa tapo" FontFamily="Consolas" Foreground="#9FD3FF"/>
+        <TextBlock Text="Python自体がない場合:" FontWeight="SemiBold"/>
+        <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
+                   Text="WindowsへPython 3.11以降をインストールし、インストーラーの『Add python.exe to PATH』を有効にしてください。その後、上記コマンドを実行します。"/>
+        <TextBlock x:Name="StatusText" Margin="0,16,0,0" Foreground="#B8C1CC" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Border>
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button x:Name="CopyButton" Content="コマンドをコピー" Click="CopyClick"/>
+      <Button x:Name="InstallButton" Content="自動インストール" Click="InstallClick"/>
+      <Button Content="あとで設定" Click="CloseClick"/>
+    </StackPanel>
+  </Grid>
+</Window>

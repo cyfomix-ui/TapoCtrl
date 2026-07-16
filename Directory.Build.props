@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <TapoCtrlVersion>0.0.75</TapoCtrlVersion>
+    <Version>$(TapoCtrlVersion)</Version>
+    <AssemblyVersion>0.0.75.0</AssemblyVersion>
+    <FileVersion>0.0.75.0</FileVersion>
+    <InformationalVersion>$(TapoCtrlVersion)</InformationalVersion>
+  </PropertyGroup>
+</Project>

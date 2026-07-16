@@ -1,0 +1,32 @@
+<Window x:Class="TapoCtrl.Windows.WebServerSettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Webサーバー設定" Width="560" Height="430" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#20242B" Foreground="#F2F5F7">
+ <Window.Resources>
+  <Style TargetType="TextBox">
+   <Setter Property="Background" Value="#303640"/>
+   <Setter Property="Foreground" Value="#F2F5F7"/>
+   <Setter Property="BorderBrush" Value="#697383"/>
+   <Setter Property="CaretBrush" Value="#FFFFFF"/>
+   <Setter Property="Padding" Value="8,4"/>
+  </Style>
+  <Style TargetType="ComboBox">
+   <Setter Property="Background" Value="#303640"/>
+   <Setter Property="Foreground" Value="#10151B"/>
+   <Setter Property="BorderBrush" Value="#697383"/>
+   <Setter Property="Padding" Value="8,4"/>
+  </Style>
+  <Style TargetType="ComboBoxItem">
+   <Setter Property="Background" Value="#303640"/>
+   <Setter Property="Foreground" Value="#F2F5F7"/>
+  </Style>
+ </Window.Resources>
+ <Grid Margin="22"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <TextBlock Text="自動起動" VerticalAlignment="Center" Margin="0,0,8,12"/><CheckBox x:Name="EnabledCheck" Grid.Column="1" Content="次回起動時にWebサーバーを自動起動" Margin="0,0,0,12"/>
+  <TextBlock Grid.Row="1" Text="Bind" VerticalAlignment="Center" Margin="0,0,8,12"/><ComboBox x:Name="BindBox" Grid.Row="1" Grid.Column="1" Margin="0,0,0,12" SelectedIndex="0" Background="#303641" Foreground="#111111">
+   <ComboBoxItem Content="0.0.0.0" Background="#303641" Foreground="#F2F5F7"/>
+   <ComboBoxItem Content="127.0.0.1" Background="#303641" Foreground="#F2F5F7"/>
+  </ComboBox>
+  <TextBlock Grid.Row="2" Text="Port" VerticalAlignment="Center" Margin="0,0,8,12"/><TextBox x:Name="PortBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,12"/>
+  <TextBlock Grid.Row="3" Text="状態" VerticalAlignment="Top"/><TextBlock x:Name="StatusText" Grid.Row="3" Grid.Column="1" TextWrapping="Wrap" Foreground="#AEE6C1"/>
+  <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Margin="0,16,0,0" TextWrapping="Wrap" Foreground="#AEB8C5" Text="127.0.0.1 はこのPCだけ、0.0.0.0 はLAN内の端末からも接続できます。LAN内から見えない場合はWindows Defender FirewallでPortの受信許可が必要です。ルーター越えにはngrokまたはCloudflare Tunnelを併用してください。"/>
+  <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="キャンセル" Width="110" Margin="0,0,10,0" Click="Cancel_Click"/><Button Content="保存して再起動" Width="135" Click="Save_Click"/></StackPanel>
+ </Grid>
+</Window>

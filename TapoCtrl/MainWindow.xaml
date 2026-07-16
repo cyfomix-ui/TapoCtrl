@@ -1,0 +1,24 @@
+<Window x:Class="TapoCtrl.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="TapoCtrl" Width="1100" Height="720" WindowStartupLocation="Manual" ShowInTaskbar="False">
+ <Grid Background="#171A1F">
+  <Grid.RowDefinitions>
+   <RowDefinition Height="*"/>
+   <RowDefinition Height="Auto"/>
+  </Grid.RowDefinitions>
+  <TabControl x:Name="Tabs" Grid.Row="0" Background="#171A1F" Foreground="#FFFFFF" TabStripPlacement="Bottom" SelectionChanged="TabChanged" BorderThickness="0">
+   <TabControl.Resources>
+    <Style TargetType="TabPanel"><Setter Property="Background" Value="#20252D"/></Style>
+   </TabControl.Resources>
+   <TabItem Header="メイン"><Canvas x:Name="MainCanvas" Background="#171A1F" ClipToBounds="True" MouseRightButtonUp="CanvasRightClick"/></TabItem>
+  </TabControl>
+  <Border Grid.Row="1" Background="#20252D" BorderBrush="#39424F" BorderThickness="0,1,0,0" Padding="12,8">
+   <Grid>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+    <TextBlock x:Name="ClockText" Grid.Column="0" Foreground="#FFFFFF" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,14,0" Text="現在 --:--:--"/>
+    <ProgressBar x:Name="BusyProgress" Grid.Column="1" Width="110" Height="8" Margin="0,0,12,0" IsIndeterminate="True" Visibility="Collapsed"/>
+    <TextBlock x:Name="StatusText" Grid.Column="2" Foreground="#D7DEE8" VerticalAlignment="Center" Text="起動中…" TextTrimming="CharacterEllipsis"/>
+    <TextBlock x:Name="ErrorTimeText" Grid.Column="3" Foreground="#FF9A9A" VerticalAlignment="Center" Margin="12,0,0,0" Text="" ToolTip="最後に通信または更新エラーが発生した時刻"/>
+    <Button x:Name="RetryButton" Grid.Column="4" Content="再試行" Padding="14,5" Margin="12,0,0,0" Visibility="Collapsed" Click="RetryButton_Click"/>
+   </Grid>
+  </Border>
+ </Grid>
+</Window>

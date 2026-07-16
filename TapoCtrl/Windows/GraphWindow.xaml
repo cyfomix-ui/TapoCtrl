@@ -1,0 +1,12 @@
+<Window x:Class="TapoCtrl.Windows.GraphWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TapoCtrl.Controls" Title="24時間グラフ" Width="1050" Height="620" Background="#202328" Foreground="#F2F2F2" WindowStartupLocation="CenterOwner" ShowActivated="True" Topmost="False">
+ <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+   <CheckBox x:Name="ValueCheck" Content="現在値" IsChecked="True" Checked="Toggle" Unchecked="Toggle" Margin="0,0,18,0"/>
+   <CheckBox x:Name="MinCheck" Content="最小" IsChecked="True" Checked="Toggle" Unchecked="Toggle" Margin="0,0,18,0"/>
+   <CheckBox x:Name="MaxCheck" Content="最大" IsChecked="True" Checked="Toggle" Unchecked="Toggle" Margin="0,0,18,0"/>
+   <CheckBox x:Name="AverageCheck" Content="平均" IsChecked="True" Checked="Toggle" Unchecked="Toggle"/>
+  </StackPanel>
+  <local:SimpleGraph x:Name="Graph" Grid.Row="1"/>
+  <TextBlock x:Name="StatsText" Grid.Row="2" Margin="4,8,0,0" Foreground="#D6DAE0" FontSize="13"/>
+ </Grid>
+</Window>

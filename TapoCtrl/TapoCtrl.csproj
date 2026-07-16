@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Assets\TapoCtrl.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="Help_ja.md" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Python\tapo_worker.py" LogicalName="TapoCtrl.Python.tapo_worker.py" />
+    <EmbeddedResource Include="Assets\TapoCtrl.ico" LogicalName="TapoCtrl.Assets.TapoCtrl.ico" />
+    <Resource Include="Assets\TapoCtrl.png" />
+  </ItemGroup>
+</Project>
