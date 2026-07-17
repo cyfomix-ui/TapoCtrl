@@ -30,7 +30,10 @@ history.json
 _Docs/
 _Oldsource/
 _Woker/
-docs/
+docs/*
+!docs/images/
+docs/images/*
+!docs/images/MainPanel.png
 README_ja.md
 
 # OS/editor files

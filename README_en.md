@@ -6,6 +6,10 @@ TapoCtrl is a Windows WPF desktop application for monitoring and controlling TP-
 
 Current version: **v0.0.82**
 
+## Main panel
+
+![TapoCtrl main panel](docs/images/MainPanel.png)
+
 ## Features
 
 - Discovers Tapo devices on the LAN and polls their state
