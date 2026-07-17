@@ -4,7 +4,7 @@
 
 TapoCtrl is a Windows WPF desktop application for monitoring and controlling TP-Link Tapo devices. It presents power, temperature, humidity, and switch states in customizable panels and graphs, with controls available from the desktop, system tray, and a local web interface.
 
-Current version: **v0.0.82**
+Current version: **v0.0.84**
 
 ## Main panel
 
@@ -86,16 +86,20 @@ If a Windows Firewall inbound rule is required, run the following command from a
 
 ## Local data
 
-Settings, history, and credentials are stored under `%LOCALAPPDATA%\TapoCtrl`. Local application data is excluded from Git.
+Settings, history, credentials, and operation logs are stored under `%LOCALAPPDATA%\TapoCtrl`. Local application data is excluded from Git.
 
-## Changes in v0.0.82
+- Daily logs: `%LOCALAPPDATA%\TapoCtrl\logs\TapoCtrl_YYYYMMDD.log`
+- Weekly archives: `%LOCALAPPDATA%\TapoCtrl\logs\archive\`
 
-- Updates the desktop 24-hour graph to use statistic cards consistent with the web version
-- Adds dual temperature/humidity axes, a legend, and six statistic cards to environment graphs
-- Refreshes open graph history automatically every minute
-- Stores history by metric while retaining compatibility with the previous history format
-- Refreshes the web dashboard automatically every minute
-- Updates the PNG and ICO artwork with a brighter purple design
+Logging, the minimum log level, and verbose function-entry logging can be configured in Settings. Use `Trace` only for troubleshooting because it produces high-volume output.
+
+## Changes in v0.0.84
+
+- Leaves gaps in graph lines when historical samples are missing
+- Highlights stale devices in red and automatically rediscovers them at the configured interval
+- Adds daily logs, selectable levels, verbose logging, and weekly ZIP archives
+- Records unhandled UI-thread exceptions in the operation log
+- Displays the Settings window in English on non-Japanese Windows UI environments
 
 ## Notes
 

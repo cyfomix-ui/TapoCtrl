@@ -9,7 +9,7 @@ public partial class SplashWindow : Window
     {
         InitializeComponent();
         var version = Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.82";
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.84";
         var suffixIndex = version.IndexOf('+');
         VersionText.Text = "Ver " + (suffixIndex >= 0 ? version[..suffixIndex] : version);
     }

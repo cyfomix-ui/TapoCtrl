@@ -86,7 +86,13 @@ public partial class SimpleGraph:System.Windows.Controls.UserControl
  }
  private void AddPolyline(IReadOnlyList<HistoryPoint> points,WpfBrush brush,Func<DateTime,double> xMap,Func<double,double> yMap,bool add=true)
  {
-  if(points.Count==0)return;var line=new Polyline{Stroke=brush,StrokeThickness=2.6};foreach(var p in points)line.Points.Add(new WpfPoint(xMap(p.Time),yMap(p.Value)));Plot.Children.Add(line);
+  if(points.Count==0)return;
+  var ordered=points.OrderBy(p=>p.Time).ToList();
+  var intervals=ordered.Zip(ordered.Skip(1),(a,b)=>(b.Time-a.Time).TotalSeconds).Where(x=>x>0&&x<900).DefaultIfEmpty(60);
+  var normal=Median(intervals);
+  var gap=Math.Max(150,normal*2.5);
+  Polyline? line=null; HistoryPoint? previous=null;
+  foreach(var p in ordered){if(previous is null||(p.Time-previous.Time).TotalSeconds>gap){line=new Polyline{Stroke=brush,StrokeThickness=2.6};Plot.Children.Add(line);}line!.Points.Add(new WpfPoint(xMap(p.Time),yMap(p.Value)));previous=p;}
  }
  private string FormatValue(double value)=>_unit=="W"?$"{value:0}":$"{value:0.0}";
  private void AddReference(string name,double value,WpfBrush brush,Func<double,double> yMap,double left,double width)
@@ -95,4 +101,5 @@ public partial class SimpleGraph:System.Windows.Controls.UserControl
  }
  private void AddLine(double x1,double y1,double x2,double y2,WpfColor color,double thickness){Plot.Children.Add(new Line{X1=x1,Y1=y1,X2=x2,Y2=y2,Stroke=new SolidColorBrush(color),StrokeThickness=thickness});}
  private void AddText(string text,double x,double y,double size,WpfBrush brush,double width=double.NaN,TextAlignment align=TextAlignment.Left){var t=new TextBlock{Text=text,FontSize=size,Foreground=brush,TextAlignment=align};if(!double.IsNaN(width))t.Width=width;Canvas.SetLeft(t,x);Canvas.SetTop(t,y);Plot.Children.Add(t);}
+ private static double Median(IEnumerable<double> values){var a=values.OrderBy(x=>x).ToArray();return a.Length==0?60:a.Length%2==1?a[a.Length/2]:(a[a.Length/2-1]+a[a.Length/2])/2;}
 }

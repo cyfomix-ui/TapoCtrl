@@ -79,4 +79,8 @@ public sealed class AppSettings
     public string ElectricityCompany { get; set; } = "東京電力";
     public string ContractCapacity { get; set; } = "30A";
     public double ElectricityRateYenPerKwh { get; set; } = 30.0;
+    public bool LoggingEnabled { get; set; } = true;
+    public string LogLevel { get; set; } = "Information";
+    public bool VerboseFunctionEntryLogging { get; set; } = false;
+    public int StaleDeviceMinutes { get; set; } = 5;
 }

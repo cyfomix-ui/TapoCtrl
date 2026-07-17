@@ -4,7 +4,7 @@ public partial class MainWindow:Window
 {
  public event EventHandler? TrayRegistered;
  private readonly SettingsService _settingsService=new();private readonly HistoryService _history=new();private readonly DeviceCoordinator _devices;private readonly PythonTapoTransport _transport;private AppSettings _settings;private readonly List<DevicePanel> _panels=[];private readonly List<DevicePanel> _selectedPanels=[];private readonly List<DeviceGroupPanel> _groups=[];private Forms.NotifyIcon? _tray;private Forms.Timer? _trayClickTimer;private Forms.Timer? _miniPanelRefreshTimer;private DateTime _trayDoubleClickSuppressUntil=DateTime.MinValue;private SwitchTrayWindow? _switchTrayWindow;private LocalHttpService? _http;private readonly Dictionary<string,GraphWindow> _graphWindows=new(StringComparer.OrdinalIgnoreCase);private readonly Dictionary<string,SeriesGraphWindow> _seriesGraphWindows=new(StringComparer.OrdinalIgnoreCase);private readonly Dictionary<string,(double Value,int Count)> _pendingPowerSpikes=new(StringComparer.OrdinalIgnoreCase);private bool _exit;private readonly System.Windows.Threading.DispatcherTimer _clockTimer=new(){Interval=TimeSpan.FromSeconds(1)};
- public MainWindow(){InitializeComponent();_settings=_settingsService.Load();_transport=new(_settingsService,_settings);_devices=new(_transport,_history);_devices.Updated+=x=>Dispatcher.Invoke(()=>Render(x));_devices.StatusChanged+=(text,busy)=>Dispatcher.Invoke(()=>SetStatus(text,busy,!busy&&text.Contains("失敗")));_clockTimer.Tick+=(_,__)=>UpdateClock();_clockTimer.Start();UpdateClock();PreviewKeyDown+=MainPreviewKeyDown;Loaded+=OnLoaded;Closing+=OnClosing;}
+ public MainWindow(){InitializeComponent();_settings=_settingsService.Load();AppLog.Configure(_settings.LoggingEnabled,_settings.LogLevel,_settings.VerboseFunctionEntryLogging);AppLog.Info("TapoCtrl starting");_transport=new(_settingsService,_settings);_devices=new(_transport,_history,_settings.StaleDeviceMinutes);_devices.Updated+=x=>Dispatcher.Invoke(()=>Render(x));_devices.StatusChanged+=(text,busy)=>Dispatcher.Invoke(()=>SetStatus(text,busy,!busy&&text.Contains("失敗")));_clockTimer.Tick+=(_,__)=>UpdateClock();_clockTimer.Start();UpdateClock();PreviewKeyDown+=MainPreviewKeyDown;Loaded+=OnLoaded;Closing+=OnClosing;}
  private void MainPreviewKeyDown(object sender,System.Windows.Input.KeyEventArgs e)
  {
   if(e.Key==System.Windows.Input.Key.F5 && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -37,7 +37,7 @@ public partial class MainWindow:Window
     {
         var version = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-            ?? "0.0.82";
+            ?? "0.0.84";
         var suffixIndex = version.IndexOf('+');
         return suffixIndex >= 0 ? version[..suffixIndex] : version;
     }
@@ -674,8 +674,8 @@ public partial class MainWindow:Window
  }
  private async void RetryButton_Click(object sender,RoutedEventArgs e){RetryButton.Visibility=Visibility.Collapsed;try{SetStatus("再試行しています…",true);await _devices.RefreshMetadataAsync();}catch{}}
  private void TabChanged(object s,SelectionChangedEventArgs e){}
- private void SaveSettings(){_settings.Left=Left;_settings.Top=Top;_settings.Width=Width;_settings.Height=Height;_settingsService.Save(_settings);}
- private void OnClosing(object? s,System.ComponentModel.CancelEventArgs e){SaveSettings();if(!_exit){e.Cancel=true;Hide();}}
+ private void SaveSettings(){AppLog.Debug("Saving settings");_settings.Left=Left;_settings.Top=Top;_settings.Width=Width;_settings.Height=Height;_settingsService.Save(_settings);}
+ private void OnClosing(object? s,System.ComponentModel.CancelEventArgs e){AppLog.Info("Main window closing");SaveSettings();if(!_exit){e.Cancel=true;Hide();}}
  private void OpenHelp(){var p=System.IO.Path.Combine(AppContext.BaseDirectory,"Help_ja.md");if(System.IO.File.Exists(p))Process.Start(new ProcessStartInfo(p){UseShellExecute=true});}
  private void Exit(){_exit=true;foreach(var w in _graphWindows.Values.ToList())w.Close();_graphWindows.Clear();_switchTrayWindow?.Close();_trayClickTimer?.Stop();_trayClickTimer?.Dispose();_clockTimer.Stop();_http?.Dispose();_devices.Dispose();_transport.Dispose();if(_tray!=null)_tray.Visible=false;Close();System.Windows.Application.Current.Shutdown();}
  private sealed class DarkMenuRenderer:Forms.ToolStripProfessionalRenderer

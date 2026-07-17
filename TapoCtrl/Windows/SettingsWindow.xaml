@@ -1,11 +1,15 @@
-<Window x:Class="TapoCtrl.Windows.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="TapoCtrl 設定" Width="560" Height="360" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#20252D" Foreground="White">
- <Grid Margin="18"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-  <TextBlock Text="TP-Link ID" VerticalAlignment="Center"/><TextBox x:Name="UserBox" Grid.Column="1" Margin="5"/>
-  <TextBlock Grid.Row="1" Text="パスワード" VerticalAlignment="Center"/><PasswordBox x:Name="PassBox" Grid.Row="1" Grid.Column="1" Margin="5"/>
-  <TextBlock Grid.Row="2" Text="HUB IP（カンマ区切り）" VerticalAlignment="Center"/><TextBox x:Name="HubBox" Grid.Row="2" Grid.Column="1" Margin="5"/>
-  <TextBlock Grid.Row="3" Text="Python 実行ファイル" VerticalAlignment="Center"/><TextBox x:Name="PythonBox" Grid.Row="3" Grid.Column="1" Margin="5"/>
-  <TextBlock Grid.Row="4" Text="必要パッケージ" VerticalAlignment="Center"/><TextBlock Grid.Row="4" Grid.Column="1" Margin="5" Text="pip install python-kasa tapo" Foreground="#B8C1CC"/>
-  <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Margin="0,14" TextWrapping="Wrap" Foreground="#FFD166" Text="認証情報はWindows DPAPIで暗号化して保存します。C#側で取得できないH100/T310はPythonワーカーへ自動的に依頼します。"/>
-  <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="キャンセル" Width="90" Margin="5" IsCancel="True"/><Button Content="保存" Width="90" Margin="5" IsDefault="True" Click="SaveClick"/></StackPanel>
+<Window x:Class="TapoCtrl.Windows.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="TapoCtrl Settings" Width="610" Height="510" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="#20252D" Foreground="White">
+ <Grid Margin="18"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <TextBlock x:Name="UserLabel" Text="TP-Link ID" VerticalAlignment="Center"/><TextBox x:Name="UserBox" Grid.Column="1" Margin="5"/>
+  <TextBlock x:Name="PassLabel" Grid.Row="1" Text="Password"/><PasswordBox x:Name="PassBox" Grid.Row="1" Grid.Column="1" Margin="5"/>
+  <TextBlock x:Name="HubLabel" Grid.Row="2" Text="HUB IP"/><TextBox x:Name="HubBox" Grid.Row="2" Grid.Column="1" Margin="5"/>
+  <TextBlock x:Name="PythonLabel" Grid.Row="3" Text="Python executable"/><TextBox x:Name="PythonBox" Grid.Row="3" Grid.Column="1" Margin="5"/>
+  <CheckBox x:Name="LoggingBox" Grid.Row="4" Grid.ColumnSpan="2" Margin="5" Content="Enable logging"/>
+  <TextBlock x:Name="LevelLabel" Grid.Row="5" Text="Log level"/><ComboBox x:Name="LevelBox" Grid.Row="5" Grid.Column="1" Margin="5"><ComboBoxItem Content="Error"/><ComboBoxItem Content="Warning"/><ComboBoxItem Content="Information"/><ComboBoxItem Content="Debug"/><ComboBoxItem Content="Trace"/></ComboBox>
+  <CheckBox x:Name="EntryBox" Grid.Row="6" Grid.ColumnSpan="2" Margin="5" Content="Verbose function-entry logging"/>
+  <TextBlock x:Name="StaleLabel" Grid.Row="7" Text="Reconnect after (minutes)"/><TextBox x:Name="StaleBox" Grid.Row="7" Grid.Column="1" Margin="5"/>
+  <TextBlock x:Name="LogPathText" Grid.Row="8" Grid.ColumnSpan="2" Margin="5" Foreground="#B8C1CC" TextWrapping="Wrap"/>
+  <TextBlock x:Name="InfoText" Grid.Row="10" Grid.ColumnSpan="2" Margin="0,14" TextWrapping="Wrap" Foreground="#FFD166"/>
+  <StackPanel Grid.Row="11" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right"><Button x:Name="CancelButton" Content="Cancel" Width="90" Margin="5" IsCancel="True"/><Button x:Name="SaveButton" Content="Save" Width="90" Margin="5" IsDefault="True" Click="SaveClick"/></StackPanel>
  </Grid>
 </Window>

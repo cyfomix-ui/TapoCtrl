@@ -29,13 +29,13 @@ public sealed class DemoTransport : ITapoTransport
 }
 public sealed class DeviceCoordinator : IDisposable
 {
-    private readonly ITapoTransport _transport; private readonly HistoryService _history; private readonly SemaphoreSlim _gate=new(1,1); private CancellationTokenSource? _cts;
+    private readonly ITapoTransport _transport; private readonly HistoryService _history; private readonly int _staleDeviceMinutes; private DateTime _lastForcedRecovery=DateTime.MinValue; private readonly SemaphoreSlim _gate=new(1,1); private CancellationTokenSource? _cts;
     public event Action<IReadOnlyList<DeviceSnapshot>>? Updated;
     public event Action<string,bool>? StatusChanged;
     public List<DeviceSnapshot> Devices {get;}=[];
-    public DeviceCoordinator(ITapoTransport transport,HistoryService history)
+    public DeviceCoordinator(ITapoTransport transport,HistoryService history,int staleDeviceMinutes=5)
     {
-        (_transport,_history)=(transport,history);
+        (_transport,_history)=(transport,history);_staleDeviceMinutes=Math.Clamp(staleDeviceMinutes,1,60);
         _transport.StatusChanged += text => StatusChanged?.Invoke(text,true);
     }
     public async Task StartAsync(IEnumerable<DeviceSnapshot> seed,int valueSec,int metadataMin)
@@ -78,6 +78,7 @@ public sealed class DeviceCoordinator : IDisposable
     }
     public async Task RefreshValuesAsync(CancellationToken ct=default)
     {
+        AppLog.Enter("Refresh values");
         if(!await _gate.WaitAsync(0,ct)){StatusChanged?.Invoke("別の更新処理が実行中です。",true);return;}
         try
         {
@@ -88,13 +89,16 @@ public sealed class DeviceCoordinator : IDisposable
             Replace(list);
             foreach(var d in Devices)await _history.AppendAsync(d);
             Updated?.Invoke(Devices);
+            var stale=Devices.Where(d=>!d.Online||(DateTime.Now-d.Timestamp)>TimeSpan.FromMinutes(_staleDeviceMinutes)).ToList();
+            if(stale.Count>0 && DateTime.Now-_lastForcedRecovery>TimeSpan.FromMinutes(_staleDeviceMinutes)){_lastForcedRecovery=DateTime.Now;AppLog.Warn($"{stale.Count} stale device(s); metadata rediscovery requested");_=Task.Run(async()=>{try{await Task.Delay(500,ct);await RefreshMetadataAsync(ct);}catch(Exception ex){AppLog.Error("Automatic device rediscovery failed",ex);}});}
             StatusChanged?.Invoke($"現在値を更新しました / {Devices.Count} devices",false);
         }
-        catch(Exception ex){StatusChanged?.Invoke("現在値の取得に失敗しました: "+ex.Message,false);throw;}
+        catch(Exception ex){AppLog.Error("現在値の取得に失敗しました",ex);StatusChanged?.Invoke("現在値の取得に失敗しました: "+ex.Message,false);throw;}
         finally{_gate.Release();}
     }
     public async Task RefreshMetadataAsync(CancellationToken ct=default)
     {
+        AppLog.Enter("Refresh metadata");
         if(!await _gate.WaitAsync(0,ct)){StatusChanged?.Invoke("別の探索処理が実行中です。",true);return;}
         try
         {
@@ -106,7 +110,7 @@ public sealed class DeviceCoordinator : IDisposable
             Updated?.Invoke(Devices);
             StatusChanged?.Invoke(Devices.Count>0?$"探索完了 / {Devices.Count} devices":"探索は完了しましたが、デバイスが見つかりませんでした。設定とHUB IPを確認してください。",false);
         }
-        catch(Exception ex){StatusChanged?.Invoke("デバイス探索に失敗しました: "+ex.Message,false);throw;}
+        catch(Exception ex){AppLog.Error("デバイス探索に失敗しました",ex);StatusChanged?.Invoke("デバイス探索に失敗しました: "+ex.Message,false);throw;}
         finally{_gate.Release();}
     }
     public Task<bool> SetPowerAsync(DeviceSnapshot d,bool on,CancellationToken ct=default)=>_transport.SetPowerAsync(d,on,ct);

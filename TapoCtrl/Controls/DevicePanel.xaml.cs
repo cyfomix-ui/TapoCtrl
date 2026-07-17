@@ -73,7 +73,9 @@ public partial class DevicePanel:System.Windows.Controls.UserControl
    var on=d.IsOn==true;PowerStateText.Text=on?"ON":"OFF";
    PowerStateBorder.Background=new SolidColorBrush(on?System.Windows.Media.Color.FromRgb(58,166,95):System.Windows.Media.Color.FromRgb(205,75,82));
   }
-  RootBorder.BorderBrush=new SolidColorBrush(CategoryColor(d.GroupKind));
+  var stale=!d.Online||(DateTime.Now-d.Timestamp)>TimeSpan.FromMinutes(5);
+  RootBorder.BorderBrush=new SolidColorBrush(stale?System.Windows.Media.Color.FromRgb(235,70,78):CategoryColor(d.GroupKind));
+  RootBorder.Background=stale?new SolidColorBrush(System.Windows.Media.Color.FromRgb(74,31,36)):new SolidColorBrush(System.Windows.Media.Color.FromRgb(36,41,50));
   SubText.Text=d.IsPowerSummary?$"{d.Timestamp:yyyy/MM/dd HH:mm:ss}":$"{(d.Online?"Online":"Offline")}  {d.Timestamp:HH:mm:ss}";
  }
  public void SetSelected(bool selected)
