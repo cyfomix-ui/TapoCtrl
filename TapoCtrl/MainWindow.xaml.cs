@@ -31,7 +31,17 @@ public partial class MainWindow:Window
  _tray.MouseUp+=(_,a)=>{if(a.Button==Forms.MouseButtons.Left)scheduleSwitchTray();};
  _tray.MouseDoubleClick+=(_,a)=>{if(a.Button==Forms.MouseButtons.Left){_trayDoubleClickSuppressUntil=DateTime.Now.AddMilliseconds(650);_trayClickTimer?.Stop();Dispatcher.BeginInvoke(new Action(ShowPanel));}};
  }
- private string VersionText=>Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion??"0.0.75";
+ private string VersionText
+{
+    get
+    {
+        var version = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+            ?? "0.0.82";
+        var suffixIndex = version.IndexOf('+');
+        return suffixIndex >= 0 ? version[..suffixIndex] : version;
+    }
+}
  private void ShowPanel(){_switchTrayWindow?.Close();Show();WindowState=WindowState.Normal;Activate();}
  private void ShowSwitchTray()
  {
@@ -413,7 +423,7 @@ public partial class MainWindow:Window
    var series=new List<GraphSeries>();
    foreach(var d in _devices.Devices.Where(d=>d.Kind==DeviceKind.Power).OrderBy(d=>d.Name))
    {
-    var points=await _history.Read24hAsync(d.Id);
+    var points=await _history.ReadMetric24hAsync(d.Id,"power",d.PowerWatts);
     series.Add(new GraphSeries{Name=d.Name,Points=points});
    }
    var w=new SeriesGraphWindow(key,"電力系 - 全デバイス",series,"W");
@@ -426,9 +436,9 @@ public partial class MainWindow:Window
    var temp=new List<GraphSeries>();var hum=new List<GraphSeries>();
    foreach(var d in _devices.Devices.Where(d=>d.Kind==DeviceKind.Environment || d.Kind==DeviceKind.Temperature || d.Kind==DeviceKind.Humidity).OrderBy(d=>d.Name))
    {
-    if(d.Kind==DeviceKind.Humidity){hum.Add(new GraphSeries{Name=d.Name,Points=await _history.Read24hAsync(d.Id)});continue;}
-    temp.Add(new GraphSeries{Name=d.Name,Points=await _history.Read24hAsync(d.Id)});
-    if(d.Kind==DeviceKind.Environment)hum.Add(new GraphSeries{Name=d.Name,Points=await _history.Read24hAsync(d.Id+":humidity")});
+    if(d.Kind==DeviceKind.Humidity){hum.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent)});continue;}
+    temp.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetric24hAsync(d.Id,"temperature",d.TemperatureC)});
+    if(d.Kind==DeviceKind.Environment)hum.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent)});
    }
    var w=new SeriesGraphWindow(key,"温度・湿度系 - 全デバイス",temp,"℃",hum,"%");
    PlaceOwnedWindowNearMain(w,1120,760);
@@ -475,9 +485,18 @@ public partial class MainWindow:Window
  {
   var key=d.IsPowerSummary?"__power_summary__":d.Id;
   if(_graphWindows.TryGetValue(key,out var existing)){if(existing.WindowState==WindowState.Minimized)existing.WindowState=WindowState.Normal;existing.Activate();return;}
-  var points=d.IsPowerSummary?await _history.ReadAggregate24hAsync(_devices.Devices.Where(x=>x.Kind==DeviceKind.Power).Select(x=>x.Id)):await _history.Read24hAsync(d.Id);
+  var points=d.IsPowerSummary?await _history.ReadAggregate24hAsync(_devices.Devices.Where(x=>x.Kind==DeviceKind.Power).Select(x=>x.Id)):d.Kind==DeviceKind.Power?await _history.ReadMetric24hAsync(d.Id,"power",d.PowerWatts):d.Kind is DeviceKind.Environment or DeviceKind.Temperature?await _history.ReadMetric24hAsync(d.Id,"temperature",d.TemperatureC):d.Kind==DeviceKind.Humidity?await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent):await _history.Read24hAsync(d.Id);
   var unit=d.Kind==DeviceKind.Power?"W":d.Kind is DeviceKind.Environment or DeviceKind.Temperature?"℃":d.Kind==DeviceKind.Humidity?"%":"";
-  var window=new GraphWindow(key,d.Name,unit,points);
+  IReadOnlyList<HistoryPoint> secondary=[];var secondaryUnit="";
+  if(d.Kind==DeviceKind.Environment){secondary=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent);secondaryUnit="%";}
+  async Task<(IReadOnlyList<HistoryPoint> Primary,IReadOnlyList<HistoryPoint> Secondary)> ReloadHistory()
+  {
+   var primary=d.IsPowerSummary?await _history.ReadAggregate24hAsync(_devices.Devices.Where(x=>x.Kind==DeviceKind.Power).Select(x=>x.Id)):d.Kind==DeviceKind.Power?await _history.ReadMetric24hAsync(d.Id,"power",d.PowerWatts):d.Kind is DeviceKind.Environment or DeviceKind.Temperature?await _history.ReadMetric24hAsync(d.Id,"temperature",d.TemperatureC):d.Kind==DeviceKind.Humidity?await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent):await _history.Read24hAsync(d.Id);
+   IReadOnlyList<HistoryPoint> second=[];
+   if(d.Kind==DeviceKind.Environment)second=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent);
+   return(primary,second);
+  }
+  var window=new GraphWindow(key,d.Name,unit,points,secondary,secondaryUnit,ReloadHistory);
   PlaceOwnedWindowNearMain(window,1050,620);
   window.Closed+=(_,__)=>_graphWindows.Remove(key);
   _graphWindows[key]=window;
@@ -614,6 +633,22 @@ public partial class MainWindow:Window
   {
    var powerIds=_devices.Devices.Where(d=>d.Kind==DeviceKind.Power).Select(d=>d.Id).ToList();
    return await _history.ReadAggregate24hAsync(powerIds);
+  }
+  var suffixIndex=id.LastIndexOf(":metric:",StringComparison.OrdinalIgnoreCase);
+  if(suffixIndex>0)
+  {
+   var deviceId=id[..suffixIndex];
+   var metric=id[(suffixIndex+8)..];
+   var device=_devices.Devices.FirstOrDefault(d=>d.Id.Equals(deviceId,StringComparison.OrdinalIgnoreCase));
+   var current=metric.Equals("power",StringComparison.OrdinalIgnoreCase)?device?.PowerWatts:metric.Equals("temperature",StringComparison.OrdinalIgnoreCase)?device?.TemperatureC:device?.HumidityPercent;
+   return await _history.ReadMetric24hAsync(deviceId,metric,current);
+  }
+  var d=_devices.Devices.FirstOrDefault(x=>x.Id.Equals(id,StringComparison.OrdinalIgnoreCase));
+  if(d is not null)
+  {
+   if(d.Kind==DeviceKind.Power)return await _history.ReadMetric24hAsync(d.Id,"power",d.PowerWatts);
+   if(d.Kind is DeviceKind.Environment or DeviceKind.Temperature)return await _history.ReadMetric24hAsync(d.Id,"temperature",d.TemperatureC);
+   if(d.Kind==DeviceKind.Humidity)return await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent);
   }
   return await _history.Read24hAsync(id);
  }

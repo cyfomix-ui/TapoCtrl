@@ -1,12 +1,27 @@
-<Window x:Class="TapoCtrl.Windows.GraphWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TapoCtrl.Controls" Title="24時間グラフ" Width="1050" Height="620" Background="#202328" Foreground="#F2F2F2" WindowStartupLocation="CenterOwner" ShowActivated="True" Topmost="False">
- <Grid Margin="12"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-  <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-   <CheckBox x:Name="ValueCheck" Content="現在値" IsChecked="True" Checked="Toggle" Unchecked="Toggle" Margin="0,0,18,0"/>
-   <CheckBox x:Name="MinCheck" Content="最小" IsChecked="True" Checked="Toggle" Unchecked="Toggle" Margin="0,0,18,0"/>
-   <CheckBox x:Name="MaxCheck" Content="最大" IsChecked="True" Checked="Toggle" Unchecked="Toggle" Margin="0,0,18,0"/>
-   <CheckBox x:Name="AverageCheck" Content="平均" IsChecked="True" Checked="Toggle" Unchecked="Toggle"/>
-  </StackPanel>
+<Window x:Class="TapoCtrl.Windows.GraphWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TapoCtrl.Controls" Title="24時間グラフ" Width="1050" Height="700" Background="#202328" Foreground="#F2F2F2" WindowStartupLocation="CenterOwner" ShowActivated="True" Topmost="False">
+ <Grid Margin="12">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid Margin="4,0,4,8">
+   <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+   <TextBlock x:Name="DeviceNameText" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
+   <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+    <TextBlock x:Name="HeaderCurrentText" FontSize="18" FontWeight="SemiBold" Foreground="#B58CFF"/>
+    <TextBlock x:Name="HeaderTimeText" FontSize="16" FontWeight="SemiBold" Foreground="#D6DAE0" Margin="14,0,0,0"/>
+   </StackPanel>
+  </Grid>
   <local:SimpleGraph x:Name="Graph" Grid.Row="1"/>
-  <TextBlock x:Name="StatsText" Grid.Row="2" Margin="4,8,0,0" Foreground="#D6DAE0" FontSize="13"/>
+  <StackPanel x:Name="LegendPanel" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8" Visibility="Collapsed">
+   <TextBlock Text="■ 温度（左軸）" Foreground="#00DFF2" FontSize="14" FontWeight="SemiBold" Margin="0,0,24,0"/>
+   <TextBlock Text="■ 湿度（右軸）" Foreground="#FF39B8" FontSize="14" FontWeight="SemiBold"/>
+  </StackPanel>
+  <UniformGrid x:Name="StatsCards" Grid.Row="3" Columns="6" Margin="0,0,0,4">
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="現在" HorizontalAlignment="Center"/><TextBlock x:Name="CurrentText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="最小" HorizontalAlignment="Center"/><TextBlock x:Name="MinimumText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="最大" HorizontalAlignment="Center"/><TextBlock x:Name="MaximumText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="平均" HorizontalAlignment="Center"/><TextBlock x:Name="AverageText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border x:Name="HumidityCurrentCard" Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="現在湿度" HorizontalAlignment="Center"/><TextBlock x:Name="HumidityCurrentText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border x:Name="HumidityAverageCard" Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="平均湿度" HorizontalAlignment="Center"/><TextBlock x:Name="HumidityAverageText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+  </UniformGrid>
+  <TextBlock x:Name="StatsText" Grid.Row="4" Margin="4,8,0,0" Foreground="#D6DAE0" FontSize="13"/>
  </Grid>
 </Window>

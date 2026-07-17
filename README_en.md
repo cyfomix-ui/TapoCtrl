@@ -4,7 +4,7 @@
 
 TapoCtrl is a Windows WPF desktop application for monitoring and controlling TP-Link Tapo devices. It presents power, temperature, humidity, and switch states in customizable panels and graphs, with controls available from the desktop, system tray, and a local web interface.
 
-Current version: **v0.0.75**
+Current version: **v0.0.82**
 
 ## Features
 
@@ -84,12 +84,14 @@ If a Windows Firewall inbound rule is required, run the following command from a
 
 Settings, history, and credentials are stored under `%LOCALAPPDATA%\TapoCtrl`. Local application data is excluded from Git.
 
-## Changes in v0.0.75
+## Changes in v0.0.82
 
-- Shows the saved snapshot immediately during startup
-- Preserves the last successful state when a poll temporarily returns no devices
-- Retains existing power values and timestamps when individual devices fail to update
-- Allows independent on/off commands for offline entries that still have a registered IP address
+- Updates the desktop 24-hour graph to use statistic cards consistent with the web version
+- Adds dual temperature/humidity axes, a legend, and six statistic cards to environment graphs
+- Refreshes open graph history automatically every minute
+- Stores history by metric while retaining compatibility with the previous history format
+- Refreshes the web dashboard automatically every minute
+- Updates the PNG and ICO artwork with a brighter purple design
 
 ## Notes
 
