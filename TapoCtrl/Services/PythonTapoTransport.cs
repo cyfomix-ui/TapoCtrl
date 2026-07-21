@@ -132,7 +132,9 @@ public sealed class PythonTapoTransport : ITapoTransport, IDisposable
                     EnsureStarted();
                     if (attempt > 1 && restoreSessionOnRetry)
                         await RestoreWorkerSessionAsync(ct);
-                    return await SendCoreAsync(payload, ct);
+                    var response=await SendCoreAsync(payload, ct);
+                    if(attempt>1){StatusChanged?.Invoke("通信が復旧しました。監視を再開します。");AppLog.Info("Python worker communication recovered");}
+                    return response;
                 }
                 catch (OperationCanceledException) when (!ct.IsCancellationRequested)
                 {

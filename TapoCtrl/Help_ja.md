@@ -8,5 +8,8 @@
 - 右クリックから表示切替と電源ON/OFFを実行できます。
 - HTTP表示: `http://127.0.0.1:8080/`
 - JSON: `/api/devices`
-- ローカル電源操作: `/api/power?id=デバイスIDまたは名前&state=on` / `state=off`（監視セッション非依存の独立コマンド。日本語・空白はサーバー内部でURLデコード）
-- IP直接指定: `/api/power?ip=192.168.1.50&state=on` / `state=off`（監視セッション非依存）
+- ローカル電源操作: `POST /api/power?id=デバイスIDまたは完全な名前&state=on|off`（ループバック接続専用。日本語・空白はURLデコード後に完全一致。GETは旧ツール互換用）
+- IP直接指定: `POST /api/power?ip=192.168.1.50&state=on|off`（登録済みIPv4への完全一致、ループバック接続専用）
+
+- `/api/power` は外部PC、LAN、Tailscale、スマートフォンからは403です。外部操作は `/Ctrl/` を使用してください。
+- `/Ctrl/api/power` は管理画面内部の制御ヘッダーが必要です。

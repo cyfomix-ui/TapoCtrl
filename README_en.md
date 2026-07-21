@@ -4,7 +4,7 @@
 
 TapoCtrl is a Windows WPF desktop application for monitoring and controlling TP-Link Tapo devices. It presents power, temperature, humidity, and switch states in customizable panels and graphs, with controls available from the desktop, system tray, and a local web interface.
 
-Current version: **v0.0.84**
+Current version: **v0.1.01**
 
 ## Main panel
 
@@ -14,10 +14,10 @@ Current version: **v0.0.84**
 
 - Discovers Tapo devices on the LAN and polls their state
 - Displays power, temperature, humidity, and on/off status
-- Shows recent data in graphs and estimates electricity cost
+- Individual and multi-series graphs with date selection, energy totals, and estimated electricity cost
 - Customizable tabs, panel positions, sizes, and colors
 - Power control from the system tray and mini panel
-- Local web dashboard plus JSON and power-control APIs
+- Separate view and control web dashboards, plus JSON and power-control APIs
 - Retains the last successful snapshot during temporary connection failures
 
 ## Requirements
@@ -68,15 +68,15 @@ Credentials are encrypted for the current Windows user with DPAPI and stored in 
 
 The default port is `8080`.
 
-- Web interface: `http://127.0.0.1:8080/`
+- Control dashboard: `http://127.0.0.1:8080/Ctrl/`
+- View-only dashboard: `http://127.0.0.1:8080/View/`
 - Device JSON: `http://127.0.0.1:8080/api/devices`
-- Power on: `/api/power?id=device-id-or-name&state=on`
-- Power off: `/api/power?id=device-id-or-name&state=off`
-- Direct IP: `/api/power?ip=192.168.1.50&state=on`
+- Local integration power control: `POST /api/power?id=device-id-or-exact-name&state=on|off`
+- Direct IP: `POST /api/power?ip=192.168.1.50&state=on|off`
 
 ### Security notice
 
-The HTTP service does not provide authentication. Binding it to `0.0.0.0` makes it reachable by other devices on the LAN, including the power-control API. Do not expose it on untrusted networks. If remote access is required, place it behind an authenticated reverse proxy or authenticated tunnel.
+The HTTP service does not provide user authentication. `/api/power` accepts loopback clients only; use `/Ctrl/` for power control from another LAN, Tailscale, or mobile device. Any client that can reach `/Ctrl/` can operate Tapo switches. When binding to `0.0.0.0`, limit access to a trusted LAN or Tailscale network. Do not expose the service directly to the internet through router port forwarding.
 
 If a Windows Firewall inbound rule is required, run the following command from an elevated PowerShell session:
 
@@ -93,13 +93,13 @@ Settings, history, credentials, and operation logs are stored under `%LOCALAPPDA
 
 Logging, the minimum log level, and verbose function-entry logging can be configured in Settings. Use `Trace` only for troubleshooting because it produces high-volume output.
 
-## Changes in v0.0.84
+## Changes in v0.1.01
 
-- Leaves gaps in graph lines when historical samples are missing
-- Highlights stale devices in red and automatically rediscovers them at the configured interval
-- Adds daily logs, selectable levels, verbose logging, and weekly ZIP archives
-- Records unhandled UI-thread exceptions in the operation log
-- Displays the Settings window in English on non-Japanese Windows UI environments
+- Adds historical date selection to individual and multi-series graphs, including an aggregate power series and daily/monthly energy and estimated-cost statistics
+- Uses stable device-ID-based colors consistently for device names and graphs in both the desktop and web interfaces
+- Splits the web dashboard into `/Ctrl/` and `/View/`, and adds selectable mini graphs for up to four devices with current values, timestamps, and offline/stale status
+- Improves graph error reporting, collapsible device groups, power summaries, and delayed-reading indicators
+- Hardens local power-control target matching and restricts the integration API to loopback clients
 
 ## Notes
 

@@ -12,14 +12,16 @@ public sealed class GraphSeries
 {
  public string Name { get; set; }="";
  public IReadOnlyList<HistoryPoint> Points { get; set; }=[];
+ public bool IsTotal { get; set; }
 }
 public partial class MultiSeriesGraph:System.Windows.Controls.UserControl
 {
  private IReadOnlyList<GraphSeries> _series=[];
  private string _unit="";
+ private DateOnly? _displayDate;
  private static readonly System.Windows.Media.Brush[] Palette=[WpfBrushes.DeepPink,WpfBrushes.DeepSkyBlue,WpfBrushes.Gold,WpfBrushes.LightGreen,WpfBrushes.Orange,WpfBrushes.MediumPurple,WpfBrushes.Cyan,WpfBrushes.LightCoral,WpfBrushes.Lime,WpfBrushes.White];
  public MultiSeriesGraph(){InitializeComponent();SizeChanged+=(_,__)=>Redraw();}
- public void SetSeries(IReadOnlyList<GraphSeries> series,string unit){_series=series;_unit=unit;Redraw();}
+ public void SetSeries(IReadOnlyList<GraphSeries> series,string unit,DateOnly? displayDate=null){_series=series;_unit=unit;_displayDate=displayDate;Redraw();}
  private void Redraw()
  {
   Plot.Children.Clear();if(ActualWidth<180||ActualHeight<140)return;
@@ -28,7 +30,8 @@ public partial class MultiSeriesGraph:System.Windows.Controls.UserControl
   if(all.Count==0){AddText("履歴データがありません",left+20,top+20,16,WpfBrushes.LightGray);return;}
   var minValue=Math.Min(0,all.Min(x=>x.Value));var maxValue=all.Max(x=>x.Value);if(Math.Abs(maxValue-minValue)<.001)maxValue=minValue+1;
   var padding=(maxValue-minValue)*.08;maxValue+=padding;minValue=Math.Max(0,minValue-padding);
-  var start=all[0].Time;var end=all[^1].Time;var span=Math.Max(1,(end-start).TotalSeconds);
+  var start=_displayDate?.ToDateTime(TimeOnly.MinValue,DateTimeKind.Local)??all[0].Time;
+  var end=_displayDate is null?all[^1].Time:start.AddDays(1);var span=Math.Max(1,(end-start).TotalSeconds);
   for(var i=0;i<=5;i++)
   {
    var y=top+h*i/5;AddLine(left,y,left+w,y,WpfColor.FromArgb(70,150,155,165),1);
@@ -42,8 +45,17 @@ public partial class MultiSeriesGraph:System.Windows.Controls.UserControl
   for(var i=0;i<_series.Count;i++)
   {
    var points=_series[i].Points.OrderBy(p=>p.Time).ToList();if(points.Count==0)continue;
-   var brush=Palette[i%Palette.Length];var line=new Polyline{Stroke=brush,StrokeThickness=2.4};
-   foreach(var p in points)line.Points.Add(new WpfPoint(X(p.Time),Y(p.Value)));Plot.Children.Add(line);
+   var brush=Palette[i%Palette.Length];
+   Polyline? line=null;DateTime? last=null;
+   foreach(var p in points)
+   {
+    if(line is null||last is null||p.Time-last.Value>TimeSpan.FromSeconds(150))
+    {
+     line=new Polyline{Stroke=brush,StrokeThickness=_series[i].IsTotal?4.5:2.4,StrokeDashArray=_series[i].IsTotal?null:(i%2==1?new DoubleCollection{6,3}:null)};
+     Plot.Children.Add(line);
+    }
+    line.Points.Add(new WpfPoint(X(p.Time),Y(p.Value)));last=p.Time;
+   }
    var lx=left+12+(i%4)*170;var ly=top+8+(i/4)*22;AddLine(lx,ly+8,lx+26,ly+8,((SolidColorBrush)brush).Color,3);AddText(_series[i].Name,lx+32,ly,12,brush,135,TextAlignment.Left);
   }
  }
