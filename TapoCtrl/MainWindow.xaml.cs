@@ -37,7 +37,7 @@ public partial class MainWindow:Window
     {
         var version = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-            ?? "0.1.01";
+            ?? "0.1.02";
         var suffixIndex = version.IndexOf('+');
         return suffixIndex >= 0 ? version[..suffixIndex] : version;
     }
