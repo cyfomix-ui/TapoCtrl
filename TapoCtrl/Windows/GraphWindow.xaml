@@ -1,14 +1,20 @@
 <Window x:Class="TapoCtrl.Windows.GraphWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TapoCtrl.Controls" Title="24時間グラフ" Width="1050" Height="700" Background="#202328" Foreground="#F2F2F2" WindowStartupLocation="CenterOwner" ShowActivated="True" Topmost="False">
  <Grid Margin="12">
-  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Grid Margin="4,0,4,8">
    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
    <TextBlock x:Name="DeviceNameText" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/>
    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+    <Button x:Name="CalendarButton" Content="📅" Width="36" Height="30" Margin="0,0,12,0" ToolTip="履歴日付を選択"/>
     <TextBlock x:Name="HeaderCurrentText" FontSize="18" FontWeight="SemiBold" Foreground="#B58CFF"/>
     <TextBlock x:Name="HeaderTimeText" FontSize="16" FontWeight="SemiBold" Foreground="#D6DAE0" Margin="14,0,0,0"/>
    </StackPanel>
   </Grid>
+  <Popup x:Name="CalendarPopup" Grid.Row="0" PlacementTarget="{Binding ElementName=CalendarButton}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+   <Border Background="#252B35" BorderBrush="#8B95A3" BorderThickness="1" CornerRadius="8" Padding="8">
+    <Calendar x:Name="HistoryCalendar" SelectionMode="SingleDate"/>
+   </Border>
+  </Popup>
   <local:SimpleGraph x:Name="Graph" Grid.Row="1"/>
   <StackPanel x:Name="LegendPanel" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8" Visibility="Collapsed">
    <TextBlock Text="■ 温度（左軸）" Foreground="#00DFF2" FontSize="14" FontWeight="SemiBold" Margin="0,0,24,0"/>
@@ -22,6 +28,13 @@
    <Border x:Name="HumidityCurrentCard" Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="現在湿度" HorizontalAlignment="Center"/><TextBlock x:Name="HumidityCurrentText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
    <Border x:Name="HumidityAverageCard" Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="平均湿度" HorizontalAlignment="Center"/><TextBlock x:Name="HumidityAverageText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
   </UniformGrid>
-  <TextBlock x:Name="StatsText" Grid.Row="4" Margin="4,8,0,0" Foreground="#D6DAE0" FontSize="13"/>
+
+  <UniformGrid x:Name="PowerEnergyCards" Grid.Row="4" Columns="4" Margin="0,2,0,4" Visibility="Collapsed">
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="本日合計" HorizontalAlignment="Center"/><TextBlock x:Name="TodayTotalText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="本日概算" HorizontalAlignment="Center"/><TextBlock x:Name="TodayCostText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="月間計" HorizontalAlignment="Center"/><TextBlock x:Name="MonthTotalText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+   <Border Background="#282E37" CornerRadius="8" Margin="3" Padding="8"><StackPanel><TextBlock Text="月間概算" HorizontalAlignment="Center"/><TextBlock x:Name="MonthCostText" HorizontalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="#72FF9A"/></StackPanel></Border>
+  </UniformGrid>
+  <TextBlock x:Name="StatsText" Grid.Row="5" Margin="4,8,0,0" Foreground="#D6DAE0" FontSize="13"/>
  </Grid>
 </Window>

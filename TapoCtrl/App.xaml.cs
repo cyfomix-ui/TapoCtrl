@@ -1,5 +1,4 @@
 using System.Windows;
-using TapoCtrl.Services;
 using TapoCtrl.Windows;
 
 namespace TapoCtrl;
@@ -14,7 +13,6 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
         DispatcherUnhandledException += (_, a) =>
         {
-            AppLog.Error("Unhandled UI exception", a.Exception);
             System.Windows.MessageBox.Show(a.Exception.Message, "TapoCtrl");
             a.Handled = true;
         };

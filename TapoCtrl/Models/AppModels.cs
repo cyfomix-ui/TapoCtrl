@@ -13,6 +13,8 @@ public sealed class DeviceSnapshot
     public double? PowerWatts { get; set; }
     public double? TodayWh { get; set; }
     public double? MonthWh { get; set; }
+    public double? TodayCostYen { get; set; }
+    public double? MonthCostYen { get; set; }
     public double? TemperatureC { get; set; }
     public double? HumidityPercent { get; set; }
     public bool? IsOn { get; set; }
@@ -35,7 +37,55 @@ public sealed class DeviceSnapshot
         _ => "--"
     };
 }
+
+public static class ValueColorRules
+{
+    public const string Neutral = "neutral";
+    public static string Temperature(double? value)
+    {
+        if(value is null || double.IsNaN(value.Value) || double.IsInfinity(value.Value)) return Neutral;
+        var v=value.Value;
+        if(v<=0) return "white";
+        if(v>=35) return "deepmagenta";
+        if(v>=30) return "red";
+        if(v>=25) return "yellow";
+        if(v>=20) return "green";
+        if(v>=15) return "lightblue";
+        return "darkblue";
+    }
+    public static string Humidity(double? value)
+    {
+        if(value is null || double.IsNaN(value.Value) || double.IsInfinity(value.Value)) return Neutral;
+        var v=value.Value;
+        if(v>=80) return "red";
+        if(v>=60) return "yellow";
+        if(v>=40) return "green";
+        if(v>=20) return "lightblue";
+        return "darkblue";
+    }
+    public static string Power(double? value)
+    {
+        if(value is null || double.IsNaN(value.Value) || double.IsInfinity(value.Value)) return Neutral;
+        var v=value.Value;
+        if(v>=1000) return "purple";
+        if(v>=800) return "red";
+        if(v>=400) return "yellow";
+        if(v>=100) return "lime";
+        return "green";
+    }
+}
+
 public sealed class HistoryPoint { public DateTime Time { get; set; } public double Value { get; set; } }
+
+public sealed class PowerEnergyStatistics
+{
+    public double TodayWh { get; set; }
+    public double TodayCostYen { get; set; }
+    public double MonthWh { get; set; }
+    public double MonthCostYen { get; set; }
+    // Kept for source/backward compatibility. UI no longer uses this value.
+    public double MonthAverageWh { get; set; }
+}
 public sealed class GraphStatistics
 {
     public double Current { get; set; }
@@ -83,4 +133,8 @@ public sealed class AppSettings
     public string LogLevel { get; set; } = "Information";
     public bool VerboseFunctionEntryLogging { get; set; } = false;
     public int StaleDeviceMinutes { get; set; } = 5;
+    public List<string> WebViewGraphDeviceIds { get; set; } = [];
+    [JsonIgnore]
+    [Obsolete("Web管理認証は廃止されました。旧設定とのソース互換性のためだけに残しています。")]
+    public string WebAdminUser { get; set; } = "admin";
 }

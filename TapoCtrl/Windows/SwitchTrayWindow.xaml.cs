@@ -51,7 +51,7 @@ public partial class SwitchTrayWindow : Window
   style&=~WS_EX_APPWINDOW;
   NativeMethods.SetWindowLong(hwnd,GWL_EXSTYLE,style);
  }
- public void SetDevices(IEnumerable<DeviceSnapshot> devices){_devices=devices.Where(d=>(d.Kind==DeviceKind.Switch||d.Kind==DeviceKind.Power)&&!d.IsPowerSummary&&d.IsOn is not null).OrderBy(d=>d.Kind==DeviceKind.Power?0:1).ThenBy(d=>d.Name).ToList();Render();}
+ public void SetDevices(IEnumerable<DeviceSnapshot> devices){_devices=devices.Where(d=>(d.Kind==DeviceKind.Switch||d.Kind==DeviceKind.Power)&&!d.IsPowerSummary&&d.IsOn is not null).OrderBy(d=>d.Kind==DeviceKind.Switch?0:1).ThenBy(d=>d.Name,StringComparer.CurrentCultureIgnoreCase).ThenBy(d=>d.Id,StringComparer.OrdinalIgnoreCase).ToList();Render();}
  private void Render()
  {
   ItemsHost.Children.Clear();

@@ -16,7 +16,9 @@ public partial class SimpleGraph:System.Windows.Controls.UserControl
  private IReadOnlyList<HistoryPoint> _secondaryPoints=[];
  private bool _showCurrent=true,_showMin=true,_showMax=true,_showAverage=true;
  private string _unit="",_secondaryUnit="";
+ private DateOnly? _displayDate;
  public SimpleGraph(){InitializeComponent();SizeChanged+=(_,__)=>Redraw();}
+ public void SetDisplayDate(DateOnly? date){_displayDate=date;Redraw();}
  public void SetPoints(IReadOnlyList<HistoryPoint> p,string unit="",bool showCurrent=true,bool showMin=true,bool showMax=true,bool showAverage=true)
  {
   _points=p;_secondaryPoints=[];_unit=unit;_secondaryUnit="";_showCurrent=showCurrent;_showMin=showMin;_showMax=showMax;_showAverage=showAverage;Redraw();
@@ -53,8 +55,10 @@ public partial class SimpleGraph:System.Windows.Controls.UserControl
   if(_points.Count==0&&_secondaryPoints.Count==0){AddText("履歴データがありません",left+20,top+20,16,WpfBrushes.LightGray);return;}
   var primaryBounds=GetBounds(_points,_unit);var secondaryBounds=GetBounds(_secondaryPoints,_secondaryUnit);
   var allTimes=_points.Select(x=>x.Time).Concat(_secondaryPoints.Select(x=>x.Time)).OrderBy(x=>x).ToList();
-  var start=allTimes[0];var end=allTimes[^1];var span=Math.Max(60,(end-start).TotalSeconds);
-  if((end-start).TotalSeconds<60)end=start.AddSeconds(60);
+  var start=_displayDate?.ToDateTime(TimeOnly.MinValue,DateTimeKind.Local)??allTimes[0];
+  var end=_displayDate is null?allTimes[^1]:start.AddDays(1);
+  var span=Math.Max(60,(end-start).TotalSeconds);
+  if(_displayDate is null&&(end-start).TotalSeconds<60)end=start.AddSeconds(60);
   for(var i=0;i<=5;i++)
   {
    var y=top+h*i/5;AddLine(left,y,left+w,y,WpfColor.FromArgb(75,150,155,165),1);

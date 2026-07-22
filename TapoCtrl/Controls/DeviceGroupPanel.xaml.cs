@@ -15,7 +15,7 @@ public partial class DeviceGroupPanel : System.Windows.Controls.UserControl
  {
   InitializeComponent();Geometry=geometry;ApplyGeometry();
   HeaderBorder.PreviewMouseLeftButtonDown+=Down;HeaderBorder.PreviewMouseMove+=Move;HeaderBorder.PreviewMouseLeftButtonUp+=Up;
-  HeaderBorder.MouseLeftButtonDown+=HeaderDoubleClick;
+  GraphButton.Visibility=Kind==DeviceGroupKind.Switch?Visibility.Collapsed:Visibility.Visible;GraphButton.Click+=(_,e)=>{SeriesGraphRequested?.Invoke(this);e.Handled=true;};CollapseButton.Click+=(_,e)=>{ToggleCollapsed();e.Handled=true;};
   ResizeThumb.DragDelta+=Resize;HeaderBorder.ContextMenu=BuildMenu();
  }
  public void SetChildren(IEnumerable<DevicePanel> panels)
@@ -54,6 +54,14 @@ public partial class DeviceGroupPanel : System.Windows.Controls.UserControl
  }
  private static string DefaultTitle(DeviceGroupKind kind)=>kind switch{DeviceGroupKind.Power=>"電力系",DeviceGroupKind.Environment=>"温度・湿度系",_=>"スイッチ系"};
  private static System.Windows.Media.Color GroupColor(DeviceGroupKind kind)=>kind switch{DeviceGroupKind.Power=>System.Windows.Media.Color.FromRgb(232,216,138),DeviceGroupKind.Environment=>System.Windows.Media.Color.FromRgb(198,166,232),_=>System.Windows.Media.Color.FromRgb(147,214,163)};
+ private void ToggleCollapsed()
+ {
+  if(!Geometry.Collapsed)Geometry.ExpandedHeight=Geometry.Height;
+  Geometry.Collapsed=!Geometry.Collapsed;
+  if(!Geometry.Collapsed&&Geometry.ExpandedHeight>32)Geometry.Height=Geometry.ExpandedHeight;
+  CollapseButton.Content=Geometry.Collapsed?"▶":"▼";
+  ApplyGeometry();GeometryChanged?.Invoke(this);
+ }
  private void HeaderDoubleClick(object s,MouseButtonEventArgs e)
  {
   if(e.ClickCount<2)return;
@@ -63,7 +71,8 @@ public partial class DeviceGroupPanel : System.Windows.Controls.UserControl
   if(!Geometry.Collapsed&&Geometry.ExpandedHeight>32)Geometry.Height=Geometry.ExpandedHeight;
   ApplyGeometry();GeometryChanged?.Invoke(this);e.Handled=true;
  }
- private void Down(object s,MouseButtonEventArgs e){if(e.ClickCount>=2)return;var canvas=FindParentCanvas();if(canvas is null)return;_down=e.GetPosition(canvas);_drag=true;HeaderBorder.CaptureMouse();e.Handled=true;}
+ private static bool IsInteractiveSource(object source){DependencyObject? current=source as DependencyObject;while(current is not null){if(current is System.Windows.Controls.Primitives.ButtonBase or Thumb or MenuItem)return true;current=current is FrameworkContentElement content?content.Parent:VisualTreeHelper.GetParent(current);}return false;}
+ private void Down(object s,MouseButtonEventArgs e){if(e.ClickCount>=2||IsInteractiveSource(e.OriginalSource))return;var canvas=FindParentCanvas();if(canvas is null)return;_down=e.GetPosition(canvas);_drag=true;HeaderBorder.CaptureMouse();e.Handled=true;}
  private void Move(object s,System.Windows.Input.MouseEventArgs e){if(!_drag||e.LeftButton!=MouseButtonState.Pressed)return;var canvas=FindParentCanvas();if(canvas is null)return;var p=e.GetPosition(canvas);Geometry.X=Math.Max(0,Geometry.X+p.X-_down.X);Geometry.Y=Math.Max(0,Geometry.Y+p.Y-_down.Y);_down=p;Canvas.SetLeft(this,Geometry.X);Canvas.SetTop(this,Geometry.Y);e.Handled=true;}
  private void Up(object s,MouseButtonEventArgs e){if(!_drag)return;_drag=false;HeaderBorder.ReleaseMouseCapture();GeometryChanged?.Invoke(this);e.Handled=true;}
  private Canvas? FindParentCanvas(){DependencyObject? current=this;while(current is not null){if(current is Canvas canvas)return canvas;current=VisualTreeHelper.GetParent(current);}return null;}

@@ -4,7 +4,7 @@ public partial class MainWindow:Window
 {
  public event EventHandler? TrayRegistered;
  private readonly SettingsService _settingsService=new();private readonly HistoryService _history=new();private readonly DeviceCoordinator _devices;private readonly PythonTapoTransport _transport;private AppSettings _settings;private readonly List<DevicePanel> _panels=[];private readonly List<DevicePanel> _selectedPanels=[];private readonly List<DeviceGroupPanel> _groups=[];private Forms.NotifyIcon? _tray;private Forms.Timer? _trayClickTimer;private Forms.Timer? _miniPanelRefreshTimer;private DateTime _trayDoubleClickSuppressUntil=DateTime.MinValue;private SwitchTrayWindow? _switchTrayWindow;private LocalHttpService? _http;private readonly Dictionary<string,GraphWindow> _graphWindows=new(StringComparer.OrdinalIgnoreCase);private readonly Dictionary<string,SeriesGraphWindow> _seriesGraphWindows=new(StringComparer.OrdinalIgnoreCase);private readonly Dictionary<string,(double Value,int Count)> _pendingPowerSpikes=new(StringComparer.OrdinalIgnoreCase);private bool _exit;private readonly System.Windows.Threading.DispatcherTimer _clockTimer=new(){Interval=TimeSpan.FromSeconds(1)};
- public MainWindow(){InitializeComponent();_settings=_settingsService.Load();AppLog.Configure(_settings.LoggingEnabled,_settings.LogLevel,_settings.VerboseFunctionEntryLogging);AppLog.Info("TapoCtrl starting");_transport=new(_settingsService,_settings);_devices=new(_transport,_history,_settings.StaleDeviceMinutes);_devices.Updated+=x=>Dispatcher.Invoke(()=>Render(x));_devices.StatusChanged+=(text,busy)=>Dispatcher.Invoke(()=>SetStatus(text,busy,!busy&&text.Contains("失敗")));_clockTimer.Tick+=(_,__)=>UpdateClock();_clockTimer.Start();UpdateClock();PreviewKeyDown+=MainPreviewKeyDown;Loaded+=OnLoaded;Closing+=OnClosing;}
+ public MainWindow(){InitializeComponent();_settings=_settingsService.Load();AppLog.Configure(_settings.LoggingEnabled,_settings.LogLevel,_settings.VerboseFunctionEntryLogging);AppLog.Info("TapoCtrl starting");_transport=new(_settingsService,_settings);_devices=new(_transport,_history);_devices.Updated+=x=>Dispatcher.Invoke(()=>Render(x));_devices.StatusChanged+=(text,busy)=>Dispatcher.Invoke(()=>SetStatus(text,busy,!busy&&text.Contains("失敗")));_clockTimer.Tick+=(_,__)=>UpdateClock();_clockTimer.Start();UpdateClock();PreviewKeyDown+=MainPreviewKeyDown;Loaded+=OnLoaded;Closing+=OnClosing;}
  private void MainPreviewKeyDown(object sender,System.Windows.Input.KeyEventArgs e)
  {
   if(e.Key==System.Windows.Input.Key.F5 && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -19,7 +19,7 @@ public partial class MainWindow:Window
    RefreshNow();
   }
  }
- private async void OnLoaded(object s,RoutedEventArgs e){Left=_settings.Left;Top=_settings.Top;Width=_settings.Width;Height=_settings.Height;SetStatus("起動処理を開始しています…",true);try{SetupTray();}catch(Exception ex){StatusText.Text="トレイ初期化失敗: "+ex.Message;}finally{TrayRegistered?.Invoke(this,EventArgs.Empty);}BuildTabs();SetStatus("PythonとTapoライブラリを確認しています…",true);var dependency=await PythonDependencyService.CheckAsync(_settings.PythonPath);if(!dependency.Ready){SetStatus("Python環境の準備が必要です。",false,true);var guide=new PythonInstallWindow(dependency){Owner=this};guide.ShowDialog();SetStatus("Python環境を再確認しています…",true);dependency=await PythonDependencyService.CheckAsync(_settings.PythonPath);}try{if(dependency.Ready)await _devices.StartAsync(_settings.Devices,_settings.ValuePollSeconds,_settings.MetadataPollMinutes);else SetStatus("Python環境が未準備のため、Tapoデバイス監視を開始できません。右クリック→設定で確認してください。",false,true);}catch(Exception ex){SetStatus("デバイス開始失敗: "+ex.Message,false,true);}if(_settings.HttpEnabled){try{_http=new(GetHttpDevices,SetPowerById,OpenGraphById,()=>_settings.ElectricityRateYenPerKwh,ReadWebHistoryAsync);_http.Start(LocalHttpService.NormalizeBind(_settings.HttpBind),_settings.HttpPort);}catch(Exception ex){SetStatus("HTTPサービス開始失敗: "+ex.Message,false,true);}}}
+ private async void OnLoaded(object s,RoutedEventArgs e){Left=_settings.Left;Top=_settings.Top;Width=_settings.Width;Height=_settings.Height;SetStatus("起動処理を開始しています…",true);try{SetupTray();}catch(Exception ex){StatusText.Text="トレイ初期化失敗: "+ex.Message;}finally{TrayRegistered?.Invoke(this,EventArgs.Empty);}BuildTabs();SetStatus("PythonとTapoライブラリを確認しています…",true);var dependency=await PythonDependencyService.CheckAsync(_settings.PythonPath);if(!dependency.Ready){SetStatus("Python環境の準備が必要です。",false,true);var guide=new PythonInstallWindow(dependency){Owner=this};guide.ShowDialog();SetStatus("Python環境を再確認しています…",true);dependency=await PythonDependencyService.CheckAsync(_settings.PythonPath);}try{if(dependency.Ready)await _devices.StartAsync(_settings.Devices,_settings.ValuePollSeconds,_settings.MetadataPollMinutes);else SetStatus("Python環境が未準備のため、Tapoデバイス監視を開始できません。右クリック→設定で確認してください。",false,true);}catch(Exception ex){SetStatus("デバイス開始失敗: "+ex.Message,false,true);}if(_settings.HttpEnabled){try{_http=new(GetHttpDevices,SetPowerById,OpenGraphById,()=>_settings.ElectricityRateYenPerKwh,ReadWebHistoryAsync,_history,()=>_settings.WebViewGraphDeviceIds,()=>_settings.StaleDeviceMinutes);_http.Start(LocalHttpService.NormalizeBind(_settings.HttpBind),_settings.HttpPort);}catch(Exception ex){SetStatus("HTTPサービス開始失敗: "+ex.Message,false,true);}}}
  private void BuildTabs(){Tabs.Items.Clear();foreach(var tab in _settings.Tabs){var c=new Canvas{Background=new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(23,26,31)),ClipToBounds=true,Tag=tab};c.MouseRightButtonUp+=CanvasRightClick;Tabs.Items.Add(new TabItem{Header=tab.Name,Content=c});}if(Tabs.Items.Count==0){_settings.Tabs.Add(new());BuildTabs();return;}UpdateTabHeaderVisibility();}
  private void UpdateTabHeaderVisibility(){if(Tabs.Items.Count==1){var template=new DataTemplate();var f=new FrameworkElementFactory(typeof(Border));f.SetValue(HeightProperty,0d);f.SetValue(WidthProperty,0d);template.VisualTree=f;((TabItem)Tabs.Items[0]).HeaderTemplate=template;}else foreach(TabItem x in Tabs.Items)x.ClearValue(HeaderedContentControl.HeaderTemplateProperty);}
  private Canvas CurrentCanvas=>((TabItem)Tabs.SelectedItem).Content as Canvas??((TabItem)Tabs.Items[0]).Content as Canvas??throw new InvalidOperationException();
@@ -37,7 +37,7 @@ public partial class MainWindow:Window
     {
         var version = Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-            ?? "0.0.84";
+            ?? "0.1.02";
         var suffixIndex = version.IndexOf('+');
         return suffixIndex >= 0 ? version[..suffixIndex] : version;
     }
@@ -108,7 +108,7 @@ public partial class MainWindow:Window
   }
   foreach(var old in stable.Values.Where(d=>result.All(x=>!x.Id.Equals(d.Id,StringComparison.OrdinalIgnoreCase))))
   {
-   old.Online=false;
+   // An omitted refresh result is not an individual offline result. Preserve last state/time.
    result.Add(old);
   }
   return result;
@@ -230,18 +230,20 @@ public partial class MainWindow:Window
   }
   foreach(var old in previous.Values.Where(d=>!incomingById.ContainsKey(d.Id)))
   {
-   // 一時的に取得できなかった機器は、最後に正常取得した値と時刻を保持する。
-   // Onlineだけを落として値を0へ上書きしない。
-   old.Online=false;
+   // A partial/global refresh omission is not proof of an individual device failure.
+   // Preserve last state/value/time; the panel moves to stale after StaleDeviceMinutes.
    realList.Add(old);
   }
   _settings.Devices=realList;
   var allPowerDevices=realList.Where(d=>d.Kind==DeviceKind.Power).ToList();
   var powerDevices=allPowerDevices.Where(d=>d.Online).ToList();
-  var totalWatts=powerDevices.Sum(d=>d.PowerWatts??0);
-  var totalTodayWh=powerDevices.Sum(d=>d.TodayWh??0);
+  // Keep last normal readings visible during a temporary outage; Offline state is shown separately.
+  var totalWatts=allPowerDevices.Sum(d=>d.PowerWatts??0);
+  var totalTodayWh=allPowerDevices.Sum(d=>d.TodayWh??0);
+  var totalMonthWh=allPowerDevices.Sum(d=>d.MonthWh??0);
   var estimatedYen=totalTodayWh/1000.0*_settings.ElectricityRateYenPerKwh;
-  var summary=new DeviceSnapshot{Id="__power_summary__",Name="使用電力計",Kind=DeviceKind.Power,PowerWatts=totalWatts,TodayWh=totalTodayWh,MonthWh=estimatedYen,Online=true,Timestamp=DateTime.Now};
+  var monthEstimatedYen=totalMonthWh/1000.0*_settings.ElectricityRateYenPerKwh;
+  var summary=new DeviceSnapshot{Id="__power_summary__",Name="使用電力",Kind=DeviceKind.Power,PowerWatts=totalWatts,TodayWh=totalTodayWh,MonthWh=totalMonthWh,TodayCostYen=estimatedYen,MonthCostYen=monthEstimatedYen,Online=true,Timestamp=DateTime.Now};
   var list=new List<DeviceSnapshot>{summary};list.AddRange(realList);
   if(Tabs.Items.Count==0)BuildTabs();
   if(Tabs.SelectedIndex<0)Tabs.SelectedIndex=0;
@@ -267,7 +269,7 @@ public partial class MainWindow:Window
    }
    if(d.IsPowerSummary)g.X=5;
    if(d.Kind==DeviceKind.Switch&&Math.Abs(g.Height-125)<0.1)g.Height=72;
-   p=new DevicePanel(d,g);
+   p=new DevicePanel(d,g,_settings.StaleDeviceMinutes);
    p.GeometryChanged+=_=>{RefreshGroupExtents();SaveSettings();};p.OpenGraphRequested+=OpenGraph;p.DetailsRequested+=ShowDeviceDetails;p.PowerRequested+=async(x,on)=>await SetPower(x,on);p.SelectionRequested+=SelectPanel;p.MoveRequested+=MoveSelectedPanels;p.ResizeRequested+=ResizeSelectedPanels;p.LayoutCommandRequested+=ApplySelectedPanelLayout;p.SelectedPanelCountProvider=GetSelectedPanelCountForSource;
    _panels.Add(p);
   }
@@ -297,7 +299,7 @@ public partial class MainWindow:Window
    var group=_groups.FirstOrDefault(g=>g.Kind==gg.Kind);
    if(group==null)
    {
-    group=new DeviceGroupPanel(gg);group.GeometryChanged+=_=>SaveSettings();group.SeriesGraphRequested+=OpenSeriesGraph;_groups.Add(group);canvas.Children.Add(group);
+    group=new DeviceGroupPanel(gg);group.GeometryChanged+=_=>SaveSettings();group.SeriesGraphRequested+=g=>_ = OpenSeriesGraphSafeAsync(g,DateOnly.FromDateTime(DateTime.Now));_groups.Add(group);canvas.Children.Add(group);
    }
   }
  }
@@ -413,37 +415,38 @@ public partial class MainWindow:Window
   }
   RefreshGroupExtents();SaveSettings();
  }
- private async void OpenSeriesGraph(DeviceGroupPanel group)
+ private async Task OpenSeriesGraphSafeAsync(DeviceGroupPanel group,DateOnly date)
+ {
+  try{await OpenSeriesGraphAsync(group,date);}catch(Exception ex){AppLog.Error("系列グラフを開けませんでした",ex);SetStatus("系列グラフを開けませんでした: "+ex.Message,false,true);System.Windows.MessageBox.Show(this,"系列グラフを開けませんでした: "+ex.Message,"TapoCtrl",MessageBoxButton.OK,MessageBoxImage.Error);}
+ }
+ private async Task OpenSeriesGraphAsync(DeviceGroupPanel group,DateOnly date)
  {
   if(group.Kind==DeviceGroupKind.Switch)return;
-  var key="series:"+group.Kind;
+  var key=$"series:{group.Kind}:{date:yyyy-MM-dd}";
   if(_seriesGraphWindows.TryGetValue(key,out var existing)){if(existing.WindowState==WindowState.Minimized)existing.WindowState=WindowState.Normal;existing.Activate();return;}
   if(group.Kind==DeviceGroupKind.Power)
   {
-   var series=new List<GraphSeries>();
-   foreach(var d in _devices.Devices.Where(d=>d.Kind==DeviceKind.Power).OrderBy(d=>d.Name))
-   {
-    var points=await _history.ReadMetric24hAsync(d.Id,"power",d.PowerWatts);
-    series.Add(new GraphSeries{Name=d.Name,Points=points});
-   }
-   var w=new SeriesGraphWindow(key,"電力系 - 全デバイス",series,"W");
-   PlaceOwnedWindowNearMain(w,1120,760);
-   w.Closed+=(_,__)=>_seriesGraphWindows.Remove(key);_seriesGraphWindows[key]=w;w.Show();
-   return;
+   var powerDevices=_devices.Devices.Where(d=>d.Kind==DeviceKind.Power&&!d.IsPowerSummary).OrderBy(d=>d.Name,StringComparer.CurrentCultureIgnoreCase).ThenBy(d=>d.Id,StringComparer.OrdinalIgnoreCase).ToList();
+   var ids=powerDevices.Select(d=>d.Id).ToList();var byId=await _history.ReadPowerSeriesForDateAsync(ids,date);var aggregate=HistoryService.AggregatePowerSeries(byId);var powerAvailableDates=await _history.GetAvailableAggregateDatesAsync(ids);
+   var series=new List<GraphSeries>{new(){Name="合計",Points=aggregate,IsTotal=true}};foreach(var d in powerDevices)series.Add(new GraphSeries{Name=d.Name,Points=byId.GetValueOrDefault(d.Id,[])});
+   async Task<(IReadOnlyList<GraphSeries> First,IReadOnlyList<GraphSeries>? Second)> ReloadPower(){var fresh=await _history.ReadPowerSeriesForDateAsync(ids,date);var rows=new List<GraphSeries>{new(){Name="合計",Points=HistoryService.AggregatePowerSeries(fresh),IsTotal=true}};foreach(var d in powerDevices)rows.Add(new GraphSeries{Name=d.Name,Points=fresh.GetValueOrDefault(d.Id,[])});return(rows,null);}
+   PowerEnergyStatistics GetSeriesEnergyStatistics()=>CreatePowerEnergyStatistics(powerDevices);
+   var w=new SeriesGraphWindow(key,"電力系 - 全デバイス",series,"W",date,powerAvailableDates,d=>OpenSeriesGraphSafeAsync(group,d),reload:date==DateOnly.FromDateTime(DateTime.Now)?ReloadPower:null,energyProvider:date==DateOnly.FromDateTime(DateTime.Now)?GetSeriesEnergyStatistics:null);PlaceOwnedWindowNearMain(w,1120,760);w.Closed+=(_,__)=>_seriesGraphWindows.Remove(key);_seriesGraphWindows[key]=w;w.Show();return;
   }
-  if(group.Kind==DeviceGroupKind.Environment)
-  {
-   var temp=new List<GraphSeries>();var hum=new List<GraphSeries>();
-   foreach(var d in _devices.Devices.Where(d=>d.Kind==DeviceKind.Environment || d.Kind==DeviceKind.Temperature || d.Kind==DeviceKind.Humidity).OrderBy(d=>d.Name))
-   {
-    if(d.Kind==DeviceKind.Humidity){hum.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent)});continue;}
-    temp.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetric24hAsync(d.Id,"temperature",d.TemperatureC)});
-    if(d.Kind==DeviceKind.Environment)hum.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent)});
-   }
-   var w=new SeriesGraphWindow(key,"温度・湿度系 - 全デバイス",temp,"℃",hum,"%");
-   PlaceOwnedWindowNearMain(w,1120,760);
-   w.Closed+=(_,__)=>_seriesGraphWindows.Remove(key);_seriesGraphWindows[key]=w;w.Show();
-  }
+  var envDevices=_devices.Devices.Where(d=>d.Kind is DeviceKind.Environment or DeviceKind.Temperature or DeviceKind.Humidity).OrderBy(d=>d.Name,StringComparer.CurrentCultureIgnoreCase).ThenBy(d=>d.Id,StringComparer.OrdinalIgnoreCase).ToList();
+  var temp=new List<GraphSeries>();var hum=new List<GraphSeries>();
+  foreach(var d in envDevices){if(d.Kind!=DeviceKind.Humidity)temp.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetricForDateAsync(d.Id,"temperature",date)});if(d.Kind!=DeviceKind.Temperature)hum.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetricForDateAsync(d.Id,"humidity",date)});}
+  var availableLists=await Task.WhenAll(envDevices.Select(d=>_history.GetAvailableDatesAsync(d.Id,d.Kind==DeviceKind.Humidity?"humidity":"temperature")));var environmentAvailableDates=availableLists.SelectMany(x=>x).Distinct().OrderByDescending(x=>x).ToList();
+  async Task<(IReadOnlyList<GraphSeries> First,IReadOnlyList<GraphSeries>? Second)> ReloadEnvironment(){var nt=new List<GraphSeries>();var nh=new List<GraphSeries>();foreach(var d in envDevices){if(d.Kind!=DeviceKind.Humidity)nt.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetricForDateAsync(d.Id,"temperature",date)});if(d.Kind!=DeviceKind.Temperature)nh.Add(new GraphSeries{Name=d.Name,Points=await _history.ReadMetricForDateAsync(d.Id,"humidity",date)});}return(nt,nh);}
+  var ew=new SeriesGraphWindow(key,"温度・湿度系 - 全デバイス",temp,"℃",date,environmentAvailableDates,d=>OpenSeriesGraphSafeAsync(group,d),hum,"%",date==DateOnly.FromDateTime(DateTime.Now)?ReloadEnvironment:null);PlaceOwnedWindowNearMain(ew,1120,760);ew.Closed+=(_,__)=>_seriesGraphWindows.Remove(key);_seriesGraphWindows[key]=ew;ew.Show();
+ }
+ private PowerEnergyStatistics CreatePowerEnergyStatistics(IEnumerable<DeviceSnapshot> source)
+ {
+  var list=source.Where(x=>x.Kind==DeviceKind.Power&&!x.IsPowerSummary).ToList();
+  var todayWh=list.Sum(x=>x.TodayWh??0);
+  var monthWh=list.Sum(x=>x.MonthWh??0);
+  var rate=_settings.ElectricityRateYenPerKwh;
+  return new PowerEnergyStatistics{TodayWh=todayWh,TodayCostYen=todayWh/1000.0*rate,MonthWh=monthWh,MonthCostYen=monthWh/1000.0*rate,MonthAverageWh=monthWh/Math.Max(1,DateTime.Now.Day)};
  }
  private void PlaceOwnedWindowNearMain(Window window,double fallbackWidth,double fallbackHeight)
  {
@@ -481,26 +484,24 @@ public partial class MainWindow:Window
   // 詳細は複数表示可能にするため、辞書で再利用しない。
   window.Show();
  }
- private async void OpenGraph(DeviceSnapshot d)
+ private void OpenGraph(DeviceSnapshot d)=>_ = OpenGraphSafeAsync(d,DateOnly.FromDateTime(DateTime.Now));
+ private async Task OpenGraphSafeAsync(DeviceSnapshot d,DateOnly date)
  {
-  var key=d.IsPowerSummary?"__power_summary__":d.Id;
+  try{await OpenGraphAsync(d,date);}catch(Exception ex){AppLog.Error("グラフを開けませんでした",ex);SetStatus("グラフを開けませんでした: "+ex.Message,false,true);System.Windows.MessageBox.Show(this,"グラフを開けませんでした: "+ex.Message,"TapoCtrl",MessageBoxButton.OK,MessageBoxImage.Error);}
+ }
+ private async Task OpenGraphAsync(DeviceSnapshot d,DateOnly date)
+ {
+  var id=d.IsPowerSummary?"__power_summary__":d.Id;var key=$"graph:{id}:{date:yyyy-MM-dd}";
   if(_graphWindows.TryGetValue(key,out var existing)){if(existing.WindowState==WindowState.Minimized)existing.WindowState=WindowState.Normal;existing.Activate();return;}
-  var points=d.IsPowerSummary?await _history.ReadAggregate24hAsync(_devices.Devices.Where(x=>x.Kind==DeviceKind.Power).Select(x=>x.Id)):d.Kind==DeviceKind.Power?await _history.ReadMetric24hAsync(d.Id,"power",d.PowerWatts):d.Kind is DeviceKind.Environment or DeviceKind.Temperature?await _history.ReadMetric24hAsync(d.Id,"temperature",d.TemperatureC):d.Kind==DeviceKind.Humidity?await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent):await _history.Read24hAsync(d.Id);
-  var unit=d.Kind==DeviceKind.Power?"W":d.Kind is DeviceKind.Environment or DeviceKind.Temperature?"℃":d.Kind==DeviceKind.Humidity?"%":"";
-  IReadOnlyList<HistoryPoint> secondary=[];var secondaryUnit="";
-  if(d.Kind==DeviceKind.Environment){secondary=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent);secondaryUnit="%";}
-  async Task<(IReadOnlyList<HistoryPoint> Primary,IReadOnlyList<HistoryPoint> Secondary)> ReloadHistory()
-  {
-   var primary=d.IsPowerSummary?await _history.ReadAggregate24hAsync(_devices.Devices.Where(x=>x.Kind==DeviceKind.Power).Select(x=>x.Id)):d.Kind==DeviceKind.Power?await _history.ReadMetric24hAsync(d.Id,"power",d.PowerWatts):d.Kind is DeviceKind.Environment or DeviceKind.Temperature?await _history.ReadMetric24hAsync(d.Id,"temperature",d.TemperatureC):d.Kind==DeviceKind.Humidity?await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent):await _history.Read24hAsync(d.Id);
-   IReadOnlyList<HistoryPoint> second=[];
-   if(d.Kind==DeviceKind.Environment)second=await _history.ReadMetric24hAsync(d.Id,"humidity",d.HumidityPercent);
-   return(primary,second);
-  }
-  var window=new GraphWindow(key,d.Name,unit,points,secondary,secondaryUnit,ReloadHistory);
-  PlaceOwnedWindowNearMain(window,1050,620);
-  window.Closed+=(_,__)=>_graphWindows.Remove(key);
-  _graphWindows[key]=window;
-  window.Show();
+  var powerIds=_devices.Devices.Where(x=>x.Kind==DeviceKind.Power&&!x.IsPowerSummary).Select(x=>x.Id).ToList();
+  var metric=d.Kind==DeviceKind.Power?"power":d.Kind==DeviceKind.Humidity?"humidity":"temperature";
+  var points=d.IsPowerSummary?await _history.ReadAggregateForDateAsync(powerIds,date):await _history.ReadMetricForDateAsync(d.Id,metric,date);
+  IReadOnlyList<HistoryPoint> secondary=[];if(d.Kind==DeviceKind.Environment)secondary=await _history.ReadMetricForDateAsync(d.Id,"humidity",date);
+  var available=d.IsPowerSummary?await _history.GetAvailableAggregateDatesAsync(powerIds):await _history.GetAvailableDatesAsync(d.Id,metric);
+  var unit=d.Kind==DeviceKind.Power?"W":d.Kind is DeviceKind.Environment or DeviceKind.Temperature?"℃":d.Kind==DeviceKind.Humidity?"%":"";var secondaryUnit=d.Kind==DeviceKind.Environment?"%":"";var isToday=date==DateOnly.FromDateTime(DateTime.Now);
+  async Task<(IReadOnlyList<HistoryPoint> Primary,IReadOnlyList<HistoryPoint> Secondary)> ReloadHistory(){var primary=d.IsPowerSummary?await _history.ReadAggregateForDateAsync(powerIds,date):await _history.ReadMetricForDateAsync(d.Id,metric,date);IReadOnlyList<HistoryPoint> second=[];if(d.Kind==DeviceKind.Environment)second=await _history.ReadMetricForDateAsync(d.Id,"humidity",date);return(primary,second);}
+  PowerEnergyStatistics GetPowerEnergyStatistics(){var list=(d.IsPowerSummary?_devices.Devices.Where(x=>x.Kind==DeviceKind.Power&&!x.IsPowerSummary):_devices.Devices.Where(x=>x.Id.Equals(d.Id,StringComparison.OrdinalIgnoreCase))).ToList();return CreatePowerEnergyStatistics(list); }
+  var window=new GraphWindow(key,d.Name,unit,points,date,available,chosen=>OpenGraphSafeAsync(d,chosen),secondary,secondaryUnit,isToday?ReloadHistory:null,d.Kind==DeviceKind.Power&&isToday?GetPowerEnergyStatistics:null);PlaceOwnedWindowNearMain(window,1050,620);window.Closed+=(_,__)=>_graphWindows.Remove(key);_graphWindows[key]=window;window.Show();
  }
  private void OpenGraphById(string id)
  {
@@ -622,9 +623,10 @@ public partial class MainWindow:Window
  private IReadOnlyList<DeviceSnapshot> GetHttpDevices()
  {
   var real=_devices.Devices.Where(d=>d.Kind!=DeviceKind.Hub).ToList();
-  var power=real.Where(d=>d.Kind==DeviceKind.Power&&d.Online).ToList();
+  var power=real.Where(d=>d.Kind==DeviceKind.Power).ToList();
   var today=power.Sum(d=>d.TodayWh??0);
-  real.Insert(0,new DeviceSnapshot{Id="__power_summary__",Name="使用電力計",Kind=DeviceKind.Power,PowerWatts=power.Sum(d=>d.PowerWatts??0),TodayWh=today,MonthWh=today/1000.0*_settings.ElectricityRateYenPerKwh,Online=true,Timestamp=DateTime.Now});
+  var month=power.Sum(d=>d.MonthWh??0);
+  real.Insert(0,new DeviceSnapshot{Id="__power_summary__",Name="使用電力",Kind=DeviceKind.Power,PowerWatts=power.Sum(d=>d.PowerWatts??0),TodayWh=today,MonthWh=month,TodayCostYen=today/1000.0*_settings.ElectricityRateYenPerKwh,MonthCostYen=month/1000.0*_settings.ElectricityRateYenPerKwh,Online=true,Timestamp=DateTime.Now});
   return real;
  }
  private async Task<List<HistoryPoint>> ReadWebHistoryAsync(string id)
@@ -654,7 +656,7 @@ public partial class MainWindow:Window
  }
  private void RestartHttpService()
  {
-  try{_http?.Dispose();_http=null;if(_settings.HttpEnabled){_http=new(GetHttpDevices,SetPowerById,OpenGraphById,()=>_settings.ElectricityRateYenPerKwh,ReadWebHistoryAsync);_http.Start(LocalHttpService.NormalizeBind(_settings.HttpBind),_settings.HttpPort);SetStatus(BuildHttpStatus(),false);}else SetStatus("Webサーバーを停止しました。",false);}
+  try{_http?.Dispose();_http=null;if(_settings.HttpEnabled){_http=new(GetHttpDevices,SetPowerById,OpenGraphById,()=>_settings.ElectricityRateYenPerKwh,ReadWebHistoryAsync,_history,()=>_settings.WebViewGraphDeviceIds,()=>_settings.StaleDeviceMinutes);_http.Start(LocalHttpService.NormalizeBind(_settings.HttpBind),_settings.HttpPort);SetStatus(BuildHttpStatus(),false);}else SetStatus("Webサーバーを停止しました。",false);}
   catch(Exception ex){SetStatus("HTTPサービス開始失敗: "+ex.Message,false,true);}
  }
  private string BuildHttpStatus()

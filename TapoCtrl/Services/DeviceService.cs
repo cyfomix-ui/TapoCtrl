@@ -29,13 +29,13 @@ public sealed class DemoTransport : ITapoTransport
 }
 public sealed class DeviceCoordinator : IDisposable
 {
-    private readonly ITapoTransport _transport; private readonly HistoryService _history; private readonly int _staleDeviceMinutes; private DateTime _lastForcedRecovery=DateTime.MinValue; private readonly SemaphoreSlim _gate=new(1,1); private CancellationTokenSource? _cts;
+    private readonly ITapoTransport _transport; private readonly HistoryService _history; private DateTime _lastForcedRecovery=DateTime.MinValue; private readonly SemaphoreSlim _gate=new(1,1); private CancellationTokenSource? _cts;
     public event Action<IReadOnlyList<DeviceSnapshot>>? Updated;
     public event Action<string,bool>? StatusChanged;
     public List<DeviceSnapshot> Devices {get;}=[];
-    public DeviceCoordinator(ITapoTransport transport,HistoryService history,int staleDeviceMinutes=5)
+    public DeviceCoordinator(ITapoTransport transport,HistoryService history)
     {
-        (_transport,_history)=(transport,history);_staleDeviceMinutes=Math.Clamp(staleDeviceMinutes,1,60);
+        (_transport,_history)=(transport,history);
         _transport.StatusChanged += text => StatusChanged?.Invoke(text,true);
     }
     public async Task StartAsync(IEnumerable<DeviceSnapshot> seed,int valueSec,int metadataMin)
@@ -79,7 +79,7 @@ public sealed class DeviceCoordinator : IDisposable
     public async Task RefreshValuesAsync(CancellationToken ct=default)
     {
         AppLog.Enter("Refresh values");
-        if(!await _gate.WaitAsync(0,ct)){StatusChanged?.Invoke("別の更新処理が実行中です。",true);return;}
+        if(!await _gate.WaitAsync(TimeSpan.FromSeconds(5),ct)){StatusChanged?.Invoke("別の更新処理が長時間実行中です。次回周期で再試行します。",true);return;}
         try
         {
             StatusChanged?.Invoke("現在値を取得しています…",true);
@@ -89,8 +89,8 @@ public sealed class DeviceCoordinator : IDisposable
             Replace(list);
             foreach(var d in Devices)await _history.AppendAsync(d);
             Updated?.Invoke(Devices);
-            var stale=Devices.Where(d=>!d.Online||(DateTime.Now-d.Timestamp)>TimeSpan.FromMinutes(_staleDeviceMinutes)).ToList();
-            if(stale.Count>0 && DateTime.Now-_lastForcedRecovery>TimeSpan.FromMinutes(_staleDeviceMinutes)){_lastForcedRecovery=DateTime.Now;AppLog.Warn($"{stale.Count} stale device(s); metadata rediscovery requested");_=Task.Run(async()=>{try{await Task.Delay(500,ct);await RefreshMetadataAsync(ct);}catch(Exception ex){AppLog.Error("Automatic device rediscovery failed",ex);}});}
+            var stale=Devices.Where(d=>!d.Online||(DateTime.Now-d.Timestamp)>TimeSpan.FromMinutes(5)).ToList();
+            if(stale.Count>0 && DateTime.Now-_lastForcedRecovery>TimeSpan.FromMinutes(5)){_lastForcedRecovery=DateTime.Now;AppLog.Warn($"{stale.Count} stale device(s); metadata rediscovery requested");_=Task.Run(async()=>{try{await Task.Delay(500,ct);await RefreshMetadataAsync(ct);}catch(Exception ex){AppLog.Error("Automatic device rediscovery failed",ex);}});}
             StatusChanged?.Invoke($"現在値を更新しました / {Devices.Count} devices",false);
         }
         catch(Exception ex){AppLog.Error("現在値の取得に失敗しました",ex);StatusChanged?.Invoke("現在値の取得に失敗しました: "+ex.Message,false);throw;}
@@ -99,7 +99,7 @@ public sealed class DeviceCoordinator : IDisposable
     public async Task RefreshMetadataAsync(CancellationToken ct=default)
     {
         AppLog.Enter("Refresh metadata");
-        if(!await _gate.WaitAsync(0,ct)){StatusChanged?.Invoke("別の探索処理が実行中です。",true);return;}
+        if(!await _gate.WaitAsync(TimeSpan.FromSeconds(5),ct)){StatusChanged?.Invoke("別の探索処理が長時間実行中です。次回周期で再試行します。",true);return;}
         try
         {
             StatusChanged?.Invoke("LAN内のTapoデバイスとHUBを探索しています…",true);
@@ -114,6 +114,22 @@ public sealed class DeviceCoordinator : IDisposable
         finally{_gate.Release();}
     }
     public Task<bool> SetPowerAsync(DeviceSnapshot d,bool on,CancellationToken ct=default)=>_transport.SetPowerAsync(d,on,ct);
-    private void Replace(IEnumerable<DeviceSnapshot> list){Devices.Clear();Devices.AddRange(list);}
+    private void Replace(IEnumerable<DeviceSnapshot> list)
+    {
+        var incoming=list.ToDictionary(x=>x.Id,StringComparer.OrdinalIgnoreCase);
+        foreach(var existing in Devices.ToList())
+        {
+            if(incoming.TryGetValue(existing.Id,out var fresh))
+            {
+                var index=Devices.IndexOf(existing); Devices[index]=fresh; incoming.Remove(existing.Id);
+            }
+            else
+            {
+                // Partial/global refresh omissions do not prove that this individual device is offline.
+                // Keep its last successful state and timestamp; UI changes to stale only after StaleDeviceMinutes.
+            }
+        }
+        Devices.AddRange(incoming.Values);
+    }
     public void Dispose(){_cts?.Cancel();_cts?.Dispose();_gate.Dispose();}
 }

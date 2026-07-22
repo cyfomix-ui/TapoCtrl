@@ -8,6 +8,7 @@ namespace TapoCtrl.Controls;
 public partial class DevicePanel:System.Windows.Controls.UserControl
 {
  private System.Windows.Point _dragPoint; private bool _dragging; private bool _movedDuringPress; private readonly DispatcherTimer _singleClickTimer=new(){Interval=TimeSpan.FromMilliseconds(260)};
+ private readonly int _staleDeviceMinutes;
  public DeviceSnapshot Device{get;private set;} public PanelGeometry Geometry{get;}
  public bool IsSelected{get;private set;}
  public event Action<DevicePanel>? GeometryChanged;
@@ -19,8 +20,9 @@ public partial class DevicePanel:System.Windows.Controls.UserControl
  public event Action<DevicePanel,double,double>? ResizeRequested;
  public event Action<DevicePanel,PanelLayoutCommand>? LayoutCommandRequested;
  public Func<DevicePanel,int>? SelectedPanelCountProvider;
- public DevicePanel(DeviceSnapshot d,PanelGeometry g)
+ public DevicePanel(DeviceSnapshot d,PanelGeometry g,int staleDeviceMinutes=5)
  {
+  _staleDeviceMinutes=Math.Max(1,staleDeviceMinutes);
   InitializeComponent();Device=d;Geometry=g;_singleClickTimer.Tick+=SingleClickTimerTick;ApplyGeometry();UpdateDevice(d);
   NameText.MouseWheel+=NameWheel;
   ValueNumberText.MouseWheel+=ValueWheel;ValueUnitText.MouseWheel+=ValueWheel;
@@ -40,22 +42,32 @@ public partial class DevicePanel:System.Windows.Controls.UserControl
   Device=d;NameText.Text=d.Name;SummaryText.Visibility=Visibility.Collapsed;
   if(d.IsPowerSummary)
   {
-   ValueNumberText.Text=$"{d.PowerWatts ?? 0:0}";ValueUnitText.Text="W";
+   ValueNumberText.Text=FormatValue(d.PowerWatts,"0");ValueUnitText.Text="W";
    ValueNumberText.Foreground=ValueUnitText.Foreground=System.Windows.Media.Brushes.MediumPurple;
    SecondaryValuePanel.Visibility=Visibility.Collapsed;SummaryText.Visibility=Visibility.Visible;
-   SummaryText.Text=$"使用電力 {d.PowerWatts ?? 0:0} W\n本日消費 {d.TodayWh ?? 0:N0} Wh\n概算 ¥{d.MonthWh ?? 0:N0}";
+   SummaryText.Text=$"使用電力 {d.PowerWatts ?? 0:0} W\n本日使用電力 {d.TodayWh ?? 0:N1} Wh\n本日概算金額 {d.TodayCostYen ?? 0:N1} 円";
   }
   else if(d.Kind==DeviceKind.Environment)
   {
-   ValueNumberText.Text=$"{d.TemperatureC ?? 0:0.0}";ValueUnitText.Text="℃";
+   ValueNumberText.Text=FormatValue(d.TemperatureC,"0.0");ValueUnitText.Text="℃";
    ValueNumberText.Foreground=ValueUnitText.Foreground=TemperatureBrush(d.TemperatureC);
-   SecondaryNumberText.Text=$"{d.HumidityPercent ?? 0:0}";SecondaryUnitText.Text="%";
+   SecondaryNumberText.Text=FormatValue(d.HumidityPercent,"0");SecondaryUnitText.Text="%";
    SecondaryNumberText.Foreground=SecondaryUnitText.Foreground=HumidityBrush(d.HumidityPercent);SecondaryValuePanel.Visibility=Visibility.Visible;
   }
   else if(d.Kind==DeviceKind.Power)
   {
-   ValueNumberText.Text=$"{d.PowerWatts ?? 0:0}";ValueUnitText.Text="W";
+   ValueNumberText.Text=FormatValue(d.PowerWatts,"0");ValueUnitText.Text="W";
    ValueNumberText.Foreground=ValueUnitText.Foreground=ValueBrush(d);SecondaryValuePanel.Visibility=Visibility.Collapsed;
+  }
+  else if(d.Kind==DeviceKind.Temperature)
+  {
+   ValueNumberText.Text=FormatValue(d.TemperatureC,"0.0");ValueUnitText.Text="℃";
+   ValueNumberText.Foreground=ValueUnitText.Foreground=TemperatureBrush(d.TemperatureC);SecondaryValuePanel.Visibility=Visibility.Collapsed;
+  }
+  else if(d.Kind==DeviceKind.Humidity)
+  {
+   ValueNumberText.Text=FormatValue(d.HumidityPercent,"0");ValueUnitText.Text="%";
+   ValueNumberText.Foreground=ValueUnitText.Foreground=HumidityBrush(d.HumidityPercent);SecondaryValuePanel.Visibility=Visibility.Collapsed;
   }
   else if(d.Kind==DeviceKind.Switch)
   {
@@ -73,10 +85,25 @@ public partial class DevicePanel:System.Windows.Controls.UserControl
    var on=d.IsOn==true;PowerStateText.Text=on?"ON":"OFF";
    PowerStateBorder.Background=new SolidColorBrush(on?System.Windows.Media.Color.FromRgb(58,166,95):System.Windows.Media.Color.FromRgb(205,75,82));
   }
-  var stale=!d.Online||(DateTime.Now-d.Timestamp)>TimeSpan.FromMinutes(5);
-  RootBorder.BorderBrush=new SolidColorBrush(stale?System.Windows.Media.Color.FromRgb(235,70,78):CategoryColor(d.GroupKind));
-  RootBorder.Background=stale?new SolidColorBrush(System.Windows.Media.Color.FromRgb(74,31,36)):new SolidColorBrush(System.Windows.Media.Color.FromRgb(36,41,50));
-  SubText.Text=d.IsPowerSummary?$"{d.Timestamp:yyyy/MM/dd HH:mm:ss}":$"{(d.Online?"Online":"Offline")}  {d.Timestamp:HH:mm:ss}";
+  ApplyStateVisuals(d);
+ }
+ private static string FormatValue(double? value,string format)
+ {
+  if(value is null || double.IsNaN(value.Value) || double.IsInfinity(value.Value))return "--";
+  return value.Value.ToString(format,System.Globalization.CultureInfo.InvariantCulture);
+ }
+ private void ApplyStateVisuals(DeviceSnapshot d)
+ {
+  var age=DateTime.Now-d.Timestamp;
+  var offline=!d.Online;
+  var stale=!offline && age>TimeSpan.FromMinutes(_staleDeviceMinutes);
+  var warning=offline||stale;
+  RootBorder.BorderBrush=new SolidColorBrush(warning?System.Windows.Media.Color.FromRgb(235,70,78):CategoryColor(d.GroupKind));
+  RootBorder.Background=warning?new SolidColorBrush(System.Windows.Media.Color.FromRgb(74,31,36)):(System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(Geometry.Background)!;
+  if(d.IsPowerSummary)SubText.Text=$"{d.Timestamp:yyyy/MM/dd HH:mm:ss}";
+  else if(offline)SubText.Text=$"Offline  最終取得 {d.Timestamp:HH:mm:ss}";
+  else if(stale)SubText.Text=$"取得遅延・復旧待ち  最終取得 {d.Timestamp:HH:mm:ss}";
+  else SubText.Text=$"Online  {d.Timestamp:HH:mm:ss}";
  }
  public void SetSelected(bool selected)
  {
@@ -134,35 +161,22 @@ public partial class DevicePanel:System.Windows.Controls.UserControl
  private static bool IsGraphable(DeviceSnapshot d)=>d.IsPowerSummary||d.Kind is DeviceKind.Power or DeviceKind.Environment or DeviceKind.Temperature or DeviceKind.Humidity;
  private static System.Windows.Media.Color CategoryColor(DeviceGroupKind kind)=>kind switch{DeviceGroupKind.Power=>System.Windows.Media.Color.FromRgb(232,216,138),DeviceGroupKind.Environment=>System.Windows.Media.Color.FromRgb(198,166,232),_=>System.Windows.Media.Color.FromRgb(147,214,163)};
  private static System.Windows.Media.Brush ColorBrush(byte r,byte g,byte b)=>new SolidColorBrush(System.Windows.Media.Color.FromRgb(r,g,b));
- private static System.Windows.Media.Brush TemperatureBrush(double? value)
+ private static System.Windows.Media.Brush BrushForKey(string key)=>key switch
  {
-  var v=value??0;
-  if(v<=0)return System.Windows.Media.Brushes.White;
-  if(v>=35)return ColorBrush(194,24,91);        // 濃い赤紫
-  if(v>=30)return ColorBrush(255,75,60);       // 赤
-  if(v>=25)return ColorBrush(255,214,31);      // 黄色
-  if(v>=20)return ColorBrush(136,246,157);     // 緑
-  if(v>=15)return ColorBrush(92,210,255);      // 薄い青
-  return ColorBrush(32,96,255);                // 濃い青
- }
- private static System.Windows.Media.Brush HumidityBrush(double? value)
- {
-  var v=value??0;
-  if(v>=80)return ColorBrush(255,75,60);        // 赤
-  if(v>=60)return ColorBrush(255,214,31);       // 黄色
-  if(v>=40)return ColorBrush(136,246,157);      // 緑
-  if(v>=20)return ColorBrush(92,210,255);       // 薄い青
-  return ColorBrush(32,96,255);                 // 濃い青
- }
- private static System.Windows.Media.Brush PowerBrush(double? value)
- {
-  var v=value??0;
-  if(v>=1000)return ColorBrush(110,44,255);     // 濃い紫
-  if(v>=800)return ColorBrush(255,75,60);       // 赤
-  if(v>=400)return ColorBrush(255,214,31);      // 黄色
-  if(v>=100)return ColorBrush(190,255,72);      // 黄緑
-  return ColorBrush(36,255,96);                 // 緑
- }
+  "purple"=>ColorBrush(110,44,255),
+  "deepmagenta"=>ColorBrush(194,24,91),
+  "red"=>ColorBrush(255,75,60),
+  "yellow"=>ColorBrush(255,214,31),
+  "lime"=>ColorBrush(190,255,72),
+  "green"=>ColorBrush(36,255,96),
+  "lightblue"=>ColorBrush(92,210,255),
+  "darkblue"=>ColorBrush(32,96,255),
+  "white"=>System.Windows.Media.Brushes.White,
+  _=>ColorBrush(170,176,188)
+ };
+ private static System.Windows.Media.Brush TemperatureBrush(double? value)=>BrushForKey(ValueColorRules.Temperature(value));
+ private static System.Windows.Media.Brush HumidityBrush(double? value)=>BrushForKey(ValueColorRules.Humidity(value));
+ private static System.Windows.Media.Brush PowerBrush(double? value)=>BrushForKey(ValueColorRules.Power(value));
  private static System.Windows.Media.Brush ValueBrush(DeviceSnapshot d)=>d.Kind switch{DeviceKind.Temperature=>TemperatureBrush(d.TemperatureC),DeviceKind.Humidity=>HumidityBrush(d.HumidityPercent),DeviceKind.Power=>PowerBrush(d.PowerWatts),DeviceKind.Switch when d.IsOn==true=>System.Windows.Media.Brushes.LightGreen,DeviceKind.Switch=>System.Windows.Media.Brushes.LightCoral,_=>System.Windows.Media.Brushes.White};
  public void ApplyGeometry()
  {
@@ -178,6 +192,7 @@ public partial class DevicePanel:System.Windows.Controls.UserControl
   RootBorder.Background=(System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(Geometry.Background)!;
   NameText.Foreground=(System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(Geometry.TitleForeground)!;
   Visibility=Geometry.Visible?Visibility.Visible:Visibility.Collapsed;
+  ApplyStateVisuals(Device);
   Canvas.SetLeft(this,Geometry.X);Canvas.SetTop(this,Geometry.Y);
  }
  private double MinimumPanelHeight()
